@@ -100,3 +100,10 @@ def test_skip_limit_per_day(tmp_path: Path) -> None:
     stats = tracker.get_today_stats()
     assert stats["skips"] == 1
     db.close()
+
+
+def test_seconds_to_next_break_for_active_cycle(tmp_path: Path) -> None:
+    tracker, clock, db = make_tracker(tmp_path, [0] * 10)
+    tracker.cycle_active_sec = 49 * 60 + 30
+    assert tracker.get_seconds_to_next_break() == 30
+    db.close()

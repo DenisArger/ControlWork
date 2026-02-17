@@ -4,7 +4,7 @@ import sys
 
 from PySide6.QtCore import QTimer
 from PySide6.QtGui import QAction
-from PySide6.QtWidgets import QApplication, QMenu, QMessageBox, QStyle, QSystemTrayIcon
+from PySide6.QtWidgets import QApplication, QDialog, QMenu, QMessageBox, QStyle, QSystemTrayIcon
 
 from .i18n import tr
 from .models import AppSettings, ReminderEvent, TrackerState
@@ -16,7 +16,7 @@ from .services.reminder import ReminderController
 from .services.tracker import TrackerService
 from .settings import AppPaths, SettingsService
 from .ui.break_overlay import BreakOverlay
-from .ui.main_window import FirstRunDialog, MainWindow
+from .ui.main_window import FirstRunDialog, MainWindow, SettingsDialog
 
 
 class ControlWorkApplication:
@@ -39,7 +39,6 @@ class ControlWorkApplication:
 
         self.main_window = MainWindow(self.settings)
         self.main_window.set_settings(self.settings)
-        self.main_window.save_requested.connect(self._on_save_settings)
         self.main_window.pause_toggle_requested.connect(self._toggle_pause)
 
         self.break_overlay = BreakOverlay(self.settings.language, self.settings.reminder_tone)
@@ -69,7 +68,10 @@ class ControlWorkApplication:
 
         self.main_window.show()
         self.main_window.update_state(self.tracker.state)
-        self.main_window.update_stats(self.tracker.get_today_stats())
+        self.main_window.update_timers(
+            self.tracker.get_cycle_active_seconds(),
+            self.tracker.get_seconds_to_next_break(),
+        )
 
     def _build_tray_menu(self) -> None:
         lang = self.settings.language
@@ -77,19 +79,16 @@ class ControlWorkApplication:
 
         self.action_status = QAction(tr(lang, "menu_status"), self.main_window)
         self.action_pause = QAction(tr(lang, "menu_pause"), self.main_window)
-        self.action_stats = QAction(tr(lang, "menu_stats"), self.main_window)
         self.action_settings = QAction(tr(lang, "menu_settings"), self.main_window)
         self.action_exit = QAction(tr(lang, "menu_exit"), self.main_window)
 
         self.action_status.triggered.connect(self.main_window.show_status_tab)
         self.action_pause.triggered.connect(self._toggle_pause)
-        self.action_stats.triggered.connect(self.main_window.show_stats_tab)
-        self.action_settings.triggered.connect(self.main_window.show_settings_tab)
+        self.action_settings.triggered.connect(self._open_settings_dialog)
         self.action_exit.triggered.connect(self._shutdown)
 
         menu.addAction(self.action_status)
         menu.addAction(self.action_pause)
-        menu.addAction(self.action_stats)
         menu.addAction(self.action_settings)
         menu.addSeparator()
         menu.addAction(self.action_exit)
@@ -102,13 +101,16 @@ class ControlWorkApplication:
         self.action_pause.setText(
             tr(lang, "menu_resume") if self.tracker.state == TrackerState.PAUSED else tr(lang, "menu_pause")
         )
-        self.action_stats.setText(tr(lang, "menu_stats"))
         self.action_settings.setText(tr(lang, "menu_settings"))
         self.action_exit.setText(tr(lang, "menu_exit"))
 
     def _on_tick(self) -> None:
         outcome = self.tracker.tick()
         self.main_window.update_state(outcome.state)
+        self.main_window.update_timers(
+            self.tracker.get_cycle_active_seconds(),
+            self.tracker.get_seconds_to_next_break(),
+        )
 
         for event in outcome.reminders:
             self._handle_reminder(event)
@@ -120,7 +122,6 @@ class ControlWorkApplication:
             self.break_overlay.hide()
             self.notification.notify(self._reminder_text("hard_title"), self._reminder_text("break_done"))
 
-        self.main_window.update_stats(self.tracker.get_today_stats())
         self._retranslate_tray()
 
     def _handle_reminder(self, event: ReminderEvent) -> None:
@@ -166,6 +167,10 @@ class ControlWorkApplication:
     def _on_break_start(self) -> None:
         self.tracker.enter_break()
         self.break_overlay.set_break_mode(self.settings.break_duration_min * 60, 0)
+        self.main_window.update_timers(
+            self.tracker.get_cycle_active_seconds(),
+            self.tracker.get_seconds_to_next_break(),
+        )
 
     def _on_hard_snooze(self) -> None:
         if self.tracker.request_snooze("hard"):
@@ -197,6 +202,12 @@ class ControlWorkApplication:
         self.main_window.retranslate()
         self.break_overlay.set_language(settings.language, settings.reminder_tone)
         self._retranslate_tray()
+
+    def _open_settings_dialog(self) -> None:
+        dialog = SettingsDialog(self.settings, self.main_window)
+        if dialog.exec() == QDialog.Accepted:
+            self._on_save_settings(dialog.settings)
+            QMessageBox.information(self.main_window, "ControlWork", tr(self.settings.language, "saved_ok"))
 
     def _reminder_text(self, key: str, **kwargs: object) -> str:
         return tr(self.settings.language, key, _tone=self.settings.reminder_tone, **kwargs)

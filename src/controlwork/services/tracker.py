@@ -158,6 +158,18 @@ class TrackerService:
     def get_today_stats(self) -> dict[str, int]:
         return self.database.get_today_stats(*self._day_window(self.clock.now()))
 
+    def get_cycle_active_seconds(self) -> int:
+        return self.cycle_active_sec
+
+    def get_seconds_to_next_break(self) -> int | None:
+        if self.state == TrackerState.BREAK:
+            return max(0, self.settings.break_duration_min * 60 - self.break_elapsed_sec)
+        active_minutes = self.cycle_active_sec // 60
+        next_hard_min = self.reminder.next_hard_point_min(active_minutes)
+        if next_hard_min is None:
+            return None
+        return max(0, next_hard_min * 60 - self.cycle_active_sec)
+
     def _tick_break(self) -> None:
         self.break_sec += 1
         self.break_elapsed_sec += 1

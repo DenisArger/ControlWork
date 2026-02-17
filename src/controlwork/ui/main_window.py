@@ -15,7 +15,6 @@ from PySide6.QtWidgets import (
     QMessageBox,
     QPushButton,
     QSpinBox,
-    QTabWidget,
     QVBoxLayout,
     QWidget,
 )
@@ -95,42 +94,12 @@ class FirstRunDialog(QDialog):
         self.accept()
 
 
-class MainWindow(QMainWindow):
-    save_requested = Signal(AppSettings)
-    pause_toggle_requested = Signal()
-
-    def __init__(self, settings: AppSettings) -> None:
-        super().__init__()
+class SettingsDialog(QDialog):
+    def __init__(self, settings: AppSettings, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
         self.settings = settings
+        self.setModal(True)
 
-        self.tabs = QTabWidget()
-        self.setCentralWidget(self.tabs)
-
-        self.status_tab = QWidget()
-        self.settings_tab = QWidget()
-        self.stats_tab = QWidget()
-
-        self.tabs.addTab(self.status_tab, "")
-        self.tabs.addTab(self.settings_tab, "")
-        self.tabs.addTab(self.stats_tab, "")
-
-        self._build_status_tab()
-        self._build_settings_tab()
-        self._build_stats_tab()
-        self.retranslate()
-
-    def _build_status_tab(self) -> None:
-        self.state_label = QLabel()
-        self.pause_btn = QPushButton()
-        self.pause_btn.clicked.connect(self.pause_toggle_requested.emit)
-
-        layout = QVBoxLayout()
-        layout.addWidget(self.state_label)
-        layout.addWidget(self.pause_btn)
-        layout.addStretch(1)
-        self.status_tab.setLayout(layout)
-
-    def _build_settings_tab(self) -> None:
         self.language_combo = QComboBox()
         self.language_combo.addItems(["ru", "en"])
 
@@ -148,9 +117,6 @@ class MainWindow(QMainWindow):
         self.soft_edit = QLineEdit()
         self.hard_edit = QLineEdit()
         self.reset_edit = QLineEdit()
-
-        self.save_btn = QPushButton()
-        self.save_btn.clicked.connect(self._emit_save)
 
         form = QFormLayout()
         self.language_label = QLabel()
@@ -171,27 +137,22 @@ class MainWindow(QMainWindow):
         form.addRow(self.hard_label, self.hard_edit)
         form.addRow(self.reset_label, self.reset_edit)
 
+        self.cancel_btn = QPushButton()
+        self.save_btn = QPushButton()
+        self.cancel_btn.clicked.connect(self.reject)
+        self.save_btn.clicked.connect(self._on_save)
+
+        buttons = QHBoxLayout()
+        buttons.addWidget(self.cancel_btn)
+        buttons.addWidget(self.save_btn)
+
         root = QVBoxLayout()
         root.addLayout(form)
-        root.addWidget(self.save_btn)
-        root.addStretch(1)
-        self.settings_tab.setLayout(root)
+        root.addLayout(buttons)
+        self.setLayout(root)
 
-    def _build_stats_tab(self) -> None:
-        self.active_today = QLabel()
-        self.idle_today = QLabel()
-        self.break_today = QLabel()
-        self.snooze_today = QLabel()
-        self.skip_today = QLabel()
-
-        layout = QVBoxLayout()
-        layout.addWidget(self.active_today)
-        layout.addWidget(self.idle_today)
-        layout.addWidget(self.break_today)
-        layout.addWidget(self.snooze_today)
-        layout.addWidget(self.skip_today)
-        layout.addStretch(1)
-        self.stats_tab.setLayout(layout)
+        self.set_settings(settings)
+        self.retranslate()
 
     def set_settings(self, settings: AppSettings) -> None:
         self.settings = settings
@@ -208,12 +169,7 @@ class MainWindow(QMainWindow):
 
     def retranslate(self) -> None:
         lang = self.settings.language
-        self.setWindowTitle(tr(lang, "app_title"))
-        self.tabs.setTabText(0, tr(lang, "tab_status"))
-        self.tabs.setTabText(1, tr(lang, "tab_settings"))
-        self.tabs.setTabText(2, tr(lang, "tab_stats"))
-        self.pause_btn.setText(tr(lang, "menu_pause"))
-
+        self.setWindowTitle(tr(lang, "menu_settings"))
         self.language_label.setText(tr(lang, "settings_language"))
         self.autostart_label.setText(tr(lang, "settings_autostart"))
         self.idle_label.setText(tr(lang, "settings_idle"))
@@ -222,9 +178,75 @@ class MainWindow(QMainWindow):
         self.soft_label.setText(tr(lang, "settings_soft"))
         self.hard_label.setText(tr(lang, "settings_hard"))
         self.reset_label.setText(tr(lang, "settings_reset"))
+        self.cancel_btn.setText(tr(lang, "btn_cancel"))
         self.save_btn.setText(tr(lang, "settings_save"))
         for idx, tone in enumerate(REMINDER_TONES):
             self.tone_combo.setItemText(idx, tr(lang, "tone_" + tone))
+
+    def _on_save(self) -> None:
+        soft_points = _parse_points(self.soft_edit.text())
+        hard_points = _parse_points(self.hard_edit.text())
+        if not soft_points or not hard_points:
+            QMessageBox.warning(self, "Error", tr(self.settings.language, "parse_error"))
+            return
+
+        next_settings = replace(
+            self.settings,
+            language=self.language_combo.currentText(),
+            autostart_enabled=self.autostart_checkbox.isChecked(),
+            idle_threshold_sec=self.idle_spin.value(),
+            break_duration_min=self.break_spin.value(),
+            reminder_tone=str(self.tone_combo.currentData() or "friendly"),
+            soft_points_min=soft_points,
+            hard_points_min=hard_points,
+            workday_reset_time=self.reset_edit.text().strip() or "04:00",
+        )
+        next_settings.normalize()
+        self.settings = next_settings
+        self.accept()
+
+
+class MainWindow(QMainWindow):
+    pause_toggle_requested = Signal()
+
+    def __init__(self, settings: AppSettings) -> None:
+        super().__init__()
+        self.settings = settings
+        self._last_work_seconds = 0
+        self._last_until_break_seconds: int | None = None
+        self.setWindowFlag(Qt.WindowStaysOnTopHint, True)
+        self.setFixedSize(290, 145)
+
+        body = QWidget()
+        layout = QVBoxLayout()
+        layout.setContentsMargins(8, 8, 8, 8)
+        layout.setSpacing(4)
+
+        self.state_label = QLabel()
+        self.work_time_label = QLabel()
+        self.until_break_label = QLabel()
+        self.pause_btn = QPushButton()
+        self.pause_btn.setFixedHeight(24)
+        self.pause_btn.clicked.connect(self.pause_toggle_requested.emit)
+
+        layout.addWidget(self.state_label)
+        layout.addWidget(self.work_time_label)
+        layout.addWidget(self.until_break_label)
+        layout.addWidget(self.pause_btn)
+
+        body.setLayout(layout)
+        self.setCentralWidget(body)
+
+        self.retranslate()
+
+    def set_settings(self, settings: AppSettings) -> None:
+        self.settings = settings
+
+    def retranslate(self) -> None:
+        lang = self.settings.language
+        self.setWindowTitle(tr(lang, "app_title"))
+        self.pause_btn.setText(tr(lang, "menu_pause"))
+        self.update_timers(self._last_work_seconds, self._last_until_break_seconds)
 
     def update_state(self, state: TrackerState) -> None:
         key_map = {
@@ -241,52 +263,31 @@ class MainWindow(QMainWindow):
             else tr(self.settings.language, "menu_pause")
         )
 
-    def update_stats(self, stats: dict[str, int]) -> None:
+    def update_timers(self, work_seconds: int, until_break_seconds: int | None) -> None:
+        self._last_work_seconds = max(0, int(work_seconds))
+        self._last_until_break_seconds = None if until_break_seconds is None else max(0, int(until_break_seconds))
+
         lang = self.settings.language
-        self.active_today.setText(f"{tr(lang, 'today_active')}: {stats['active_sec']}s")
-        self.idle_today.setText(f"{tr(lang, 'today_idle')}: {stats['idle_sec']}s")
-        self.break_today.setText(f"{tr(lang, 'today_break')}: {stats['break_sec']}s")
-        self.snooze_today.setText(f"{tr(lang, 'today_snooze')}: {stats['snoozes']}")
-        self.skip_today.setText(f"{tr(lang, 'today_skip')}: {stats['skips']}")
+        self.work_time_label.setText(
+            f"{tr(lang, 'status_work_time')}: {_format_duration(self._last_work_seconds)}"
+        )
+        if self._last_until_break_seconds is None:
+            until_text = tr(lang, "status_no_break")
+        else:
+            until_text = _format_duration(self._last_until_break_seconds)
+        self.until_break_label.setText(f"{tr(lang, 'status_until_break')}: {until_text}")
 
     def show_status_tab(self) -> None:
-        self.tabs.setCurrentIndex(0)
+        self._present_window()
+
+    def _present_window(self) -> None:
         self.showNormal()
         self.raise_()
         self.activateWindow()
 
-    def show_settings_tab(self) -> None:
-        self.tabs.setCurrentIndex(1)
-        self.show_status_tab()
-
-    def show_stats_tab(self) -> None:
-        self.tabs.setCurrentIndex(2)
-        self.show_status_tab()
-
     def closeEvent(self, event) -> None:  # type: ignore[override]
         event.ignore()
         self.hide()
-
-    def _emit_save(self) -> None:
-        soft_points = _parse_points(self.soft_edit.text())
-        hard_points = _parse_points(self.hard_edit.text())
-        if not soft_points or not hard_points:
-            QMessageBox.warning(self, "Error", tr(self.settings.language, "parse_error"))
-            return
-        next_settings = replace(
-            self.settings,
-            language=self.language_combo.currentText(),
-            autostart_enabled=self.autostart_checkbox.isChecked(),
-            idle_threshold_sec=self.idle_spin.value(),
-            break_duration_min=self.break_spin.value(),
-            reminder_tone=str(self.tone_combo.currentData() or "friendly"),
-            soft_points_min=soft_points,
-            hard_points_min=hard_points,
-            workday_reset_time=self.reset_edit.text().strip() or "04:00",
-        )
-        next_settings.normalize()
-        self.save_requested.emit(next_settings)
-        QMessageBox.information(self, "ControlWork", tr(self.settings.language, "saved_ok"))
 
 
 def _parse_points(raw: str) -> list[int]:
@@ -303,3 +304,11 @@ def _parse_points(raw: str) -> list[int]:
             values.append(value)
     values = sorted(set(values))
     return values
+
+
+def _format_duration(seconds: int) -> str:
+    total = max(0, int(seconds))
+    hours = total // 3600
+    minutes = (total % 3600) // 60
+    secs = total % 60
+    return f"{hours:02d}:{minutes:02d}:{secs:02d}"

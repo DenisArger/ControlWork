@@ -30,3 +30,10 @@ def test_snooze_adds_future_soft_point() -> None:
     assert len(due_20) == 1
     assert due_20[0].event_type == "soft"
     assert due_20[0].point_min == 20
+
+
+def test_next_hard_point_min_returns_upcoming_point() -> None:
+    controller = ReminderController([15, 30], [50])
+    assert controller.next_hard_point_min(10) == 50
+    controller.evaluate_due_events(50)
+    assert controller.next_hard_point_min(50) is None

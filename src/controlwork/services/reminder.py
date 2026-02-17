@@ -52,3 +52,10 @@ class ReminderController:
         self.soft_points = sorted(set(soft_points))
         self.hard_points = sorted(set(hard_points))
         self.reset_cycle()
+
+    def next_hard_point_min(self, active_minutes: int) -> int | None:
+        hard_candidates = sorted(set(self.hard_points + self._extra_hard))
+        for point in hard_candidates:
+            if point > active_minutes and point not in self._fired_hard:
+                return point
+        return None
