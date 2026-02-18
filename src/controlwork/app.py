@@ -55,11 +55,15 @@ class ControlWorkApplication:
         )
         self.tracker.start_session()
 
-        self.tray_icon = QSystemTrayIcon(self.qt_app.style().standardIcon(QStyle.SP_ComputerIcon), self.main_window)
-        self.notification = NotificationService(self.tray_icon)
-        self._build_tray_menu()
-        self.tray_icon.activated.connect(self._on_tray_activated)
-        self.tray_icon.show()
+        self.tray_icon: QSystemTrayIcon | None = None
+        self.notification = NotificationService()
+        if QSystemTrayIcon.isSystemTrayAvailable():
+            self.tray_icon = QSystemTrayIcon(self.qt_app.style().standardIcon(QStyle.SP_ComputerIcon), self.main_window)
+            self.notification = NotificationService(self.tray_icon)
+            self._build_tray_menu()
+            self.tray_icon.activated.connect(self._on_tray_activated)
+            self.tray_icon.show()
+        self.main_window.set_hide_to_tray_enabled(False)
 
         self.timer = QTimer()
         self.timer.setInterval(1000)
@@ -72,8 +76,11 @@ class ControlWorkApplication:
             self.tracker.get_cycle_active_seconds(),
             self.tracker.get_seconds_to_next_break(),
         )
+        self.main_window.show_status_tab()
 
     def _build_tray_menu(self) -> None:
+        if self.tray_icon is None:
+            return
         lang = self.settings.language
         menu = QMenu()
 
@@ -96,6 +103,8 @@ class ControlWorkApplication:
         self.tray_icon.setContextMenu(menu)
 
     def _retranslate_tray(self) -> None:
+        if self.tray_icon is None:
+            return
         lang = self.settings.language
         self.action_status.setText(tr(lang, "menu_status"))
         self.action_pause.setText(
@@ -130,7 +139,6 @@ class ControlWorkApplication:
                 self._reminder_text("soft_title"),
                 self._reminder_text("soft_body", minutes=event.point_min),
             )
-            self._show_soft_dialog(event)
             return
 
         self.notification.notify(
@@ -139,23 +147,6 @@ class ControlWorkApplication:
             critical=True,
         )
         self.break_overlay.show_prompt(can_skip=self.tracker.can_skip_today())
-
-    def _show_soft_dialog(self, event: ReminderEvent) -> None:
-        box = QMessageBox(self.main_window)
-        box.setWindowTitle(self._reminder_text("soft_title"))
-        box.setText(self._reminder_text("soft_dialog"))
-        snooze_button = box.addButton(tr(self.settings.language, "btn_snooze"), QMessageBox.AcceptRole)
-        ignore_button = box.addButton(tr(self.settings.language, "btn_ignore"), QMessageBox.RejectRole)
-        box.exec()
-
-        if box.clickedButton() == snooze_button:
-            if not self.tracker.request_snooze("soft"):
-                self.notification.notify(
-                    self._reminder_text("soft_title"),
-                    tr(self.settings.language, "limit_snooze"),
-                )
-        elif box.clickedButton() == ignore_button:
-            self.tracker.acknowledge_ignore(event)
 
     def _toggle_pause(self) -> None:
         if self.tracker.state == TrackerState.PAUSED:
@@ -223,7 +214,8 @@ class ControlWorkApplication:
         self.timer.stop()
         self.tracker.stop_session()
         self.database.close()
-        self.tray_icon.hide()
+        if self.tray_icon is not None:
+            self.tray_icon.hide()
         self.qt_app.quit()
 
     def run(self) -> int:

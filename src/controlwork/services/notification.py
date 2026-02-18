@@ -9,11 +9,17 @@ from PySide6.QtWidgets import QSystemTrayIcon
 
 @dataclass
 class NotificationService:
-    tray_icon: QSystemTrayIcon
+    tray_icon: QSystemTrayIcon | None = None
 
     def notify(self, title: str, message: str, critical: bool = False) -> None:
         self._try_native_backend(title, message, critical)
-        self.tray_icon.showMessage(title, message, QSystemTrayIcon.Warning if critical else QSystemTrayIcon.Information, 7000)
+        if self.tray_icon is not None:
+            self.tray_icon.showMessage(
+                title,
+                message,
+                QSystemTrayIcon.Warning if critical else QSystemTrayIcon.Information,
+                7000,
+            )
 
     def _try_native_backend(self, title: str, message: str, critical: bool) -> None:
         system = platform.system()

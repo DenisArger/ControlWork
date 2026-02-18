@@ -67,8 +67,8 @@ def test_active_vs_idle_accounting(tmp_path: Path) -> None:
     db.close()
 
 
-def test_mixed_break_rule_timer_plus_idle_streak(tmp_path: Path) -> None:
-    tracker, clock, db = make_tracker(tmp_path, [200] * 140, break_minutes=2)
+def test_break_completes_by_timer_even_without_idle_streak(tmp_path: Path) -> None:
+    tracker, clock, db = make_tracker(tmp_path, [0] * 140, break_minutes=2)
 
     tracker.enter_break()
     completed = False

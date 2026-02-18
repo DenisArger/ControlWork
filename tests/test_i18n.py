@@ -19,3 +19,13 @@ def test_unknown_tone_falls_back_to_friendly() -> None:
 def test_message_formatting_works_with_tone() -> None:
     text = tr("ru", "soft_body", _tone="neutral", minutes=25)
     assert "25" in text
+
+
+def test_quote_placeholder_is_filled_automatically() -> None:
+    text = tr("ru", "hard_body", _tone="neutral")
+    assert "{quote}" not in text
+
+
+def test_quote_can_be_overridden_explicitly() -> None:
+    text = tr("en", "break_done", _tone="friendly", quote="Test quote")
+    assert "Test quote" in text

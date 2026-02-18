@@ -212,26 +212,43 @@ class MainWindow(QMainWindow):
     def __init__(self, settings: AppSettings) -> None:
         super().__init__()
         self.settings = settings
+        self._hide_to_tray_enabled = True
         self._last_work_seconds = 0
         self._last_until_break_seconds: int | None = None
         self.setWindowFlag(Qt.WindowStaysOnTopHint, True)
-        self.setFixedSize(290, 145)
+        self.setFixedSize(206, 120)
 
         body = QWidget()
         layout = QVBoxLayout()
-        layout.setContentsMargins(8, 8, 8, 8)
-        layout.setSpacing(4)
+        layout.setContentsMargins(3, 4, 3, 4)
+        layout.setSpacing(2)
+
+        timers_layout = QVBoxLayout()
+        timers_layout.setContentsMargins(0, 0, 0, 0)
+        timers_layout.setSpacing(0)
 
         self.state_label = QLabel()
         self.work_time_label = QLabel()
         self.until_break_label = QLabel()
         self.pause_btn = QPushButton()
-        self.pause_btn.setFixedHeight(24)
+        self.pause_btn.setFixedHeight(21)
         self.pause_btn.clicked.connect(self.pause_toggle_requested.emit)
 
+        self.state_label.setStyleSheet("font-size: 12px; font-weight: 600;")
+        self.work_time_label.setStyleSheet("font-size: 12px;")
+        self.until_break_label.setStyleSheet("font-size: 12px;")
+        self.pause_btn.setStyleSheet(
+            "font-size: 12px; border: 1px solid #9aa7b6; border-radius: 6px; padding: 1px 8px;"
+        )
+
+        self.state_label.setMargin(0)
+        self.work_time_label.setMargin(0)
+        self.until_break_label.setMargin(0)
+
         layout.addWidget(self.state_label)
-        layout.addWidget(self.work_time_label)
-        layout.addWidget(self.until_break_label)
+        timers_layout.addWidget(self.work_time_label)
+        timers_layout.addWidget(self.until_break_label)
+        layout.addLayout(timers_layout)
         layout.addWidget(self.pause_btn)
 
         body.setLayout(layout)
@@ -241,6 +258,9 @@ class MainWindow(QMainWindow):
 
     def set_settings(self, settings: AppSettings) -> None:
         self.settings = settings
+
+    def set_hide_to_tray_enabled(self, enabled: bool) -> None:
+        self._hide_to_tray_enabled = enabled
 
     def retranslate(self) -> None:
         lang = self.settings.language
@@ -281,13 +301,20 @@ class MainWindow(QMainWindow):
         self._present_window()
 
     def _present_window(self) -> None:
+        self._move_to_anchor()
         self.showNormal()
         self.raise_()
         self.activateWindow()
 
+    def _move_to_anchor(self) -> None:
+        self.move(20, 60)
+
     def closeEvent(self, event) -> None:  # type: ignore[override]
-        event.ignore()
-        self.hide()
+        if self._hide_to_tray_enabled:
+            event.ignore()
+            self.hide()
+            return
+        event.accept()
 
 
 def _parse_points(raw: str) -> list[int]:

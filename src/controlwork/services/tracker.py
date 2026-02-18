@@ -126,7 +126,7 @@ class TrackerService:
             outcome.state = self.state
             outcome.break_remaining_sec = remaining
             outcome.break_idle_streak_sec = self.break_max_idle_streak_sec
-            if remaining <= 0 and self.break_max_idle_streak_sec >= 120:
+            if remaining <= 0:
                 self._complete_break()
                 outcome.break_completed = True
                 outcome.state = self.state

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import random
+
 TEXTS = {
     "en": {
         "app_title": "ControlWork",
@@ -124,103 +126,181 @@ TONE_MESSAGE_KEYS = {
     "break_done",
 }
 
+QUOTE_MESSAGE_KEYS = {
+    "soft_body",
+    "hard_body",
+    "overlay_prompt",
+    "break_done",
+}
+
+QUOTES = {
+    "ru": [
+        "Маленький шаг каждый день дает большой результат.",
+        "Система побеждает мотивацию, когда день сложный.",
+        "Фокус любит порядок, а порядок любит паузу.",
+        "Делай важное сначала, срочное потом.",
+        "Стабильность сильнее идеального рывка.",
+        "Глубокая работа начинается с тишины.",
+        "Дисциплина - это забота о будущем себе.",
+        "Передышка - часть продуктивности, а не ее враг.",
+        "Лучше медленно и регулярно, чем редко и героически.",
+        "Качество рождается в спокойном темпе.",
+        "Чистая голова принимает точные решения.",
+        "Твоя энергия - главный рабочий актив.",
+        "Пауза сейчас экономит ошибки позже.",
+        "Прогресс любит ритм.",
+        "Нагрузка без восстановления ведет к шуму вместо результата.",
+        "Сильный день строится из коротких фокус-блоков.",
+        "Ты управляешь задачами, когда управляешь вниманием.",
+        "Отдых - это инвестиция в ясность.",
+        "Сначала дыхание, потом ускорение.",
+        "Один завершенный шаг лучше десяти начатых.",
+        "Результат растет там, где есть повторяемость.",
+        "Сфокусируйся на процессе - итог подтянется.",
+        "Пределы делают темп устойчивым.",
+        "Пауза возвращает точность мышления.",
+        "Сделано вовремя лучше, чем идеально когда-нибудь.",
+        "Внимание - это ресурс, расходуй его осознанно.",
+        "Спокойный ритм удерживает длинную дистанцию.",
+        "Побеждает не самый быстрый, а самый последовательный.",
+        "Восстановление - часть профессионализма.",
+        "Чем яснее приоритет, тем легче движение вперед.",
+    ],
+    "en": [
+        "Small daily steps create big outcomes.",
+        "Systems beat motivation on hard days.",
+        "Focus needs structure, and structure needs breaks.",
+        "Do what matters first, then what is loud.",
+        "Consistency beats perfect bursts.",
+        "Deep work starts with quiet.",
+        "Discipline is care for your future self.",
+        "Rest is part of productivity, not its enemy.",
+        "Steady beats heroic and rare.",
+        "Quality grows in a calm pace.",
+        "Clear mind, better decisions.",
+        "Your energy is your core work asset.",
+        "A break now prevents mistakes later.",
+        "Progress loves rhythm.",
+        "No recovery means noise instead of results.",
+        "Strong days are built from short focus blocks.",
+        "You manage tasks by managing attention.",
+        "Rest is an investment in clarity.",
+        "Breathe first, accelerate second.",
+        "One finished step beats ten started ones.",
+        "Results grow where repetition exists.",
+        "Trust the process and outcomes follow.",
+        "Limits make pace sustainable.",
+        "Pauses restore precision of thought.",
+        "Done on time beats perfect someday.",
+        "Attention is a resource, spend it intentionally.",
+        "Calm rhythm wins long distance.",
+        "The consistent one wins the race.",
+        "Recovery is part of professionalism.",
+        "Clear priorities make forward motion easier.",
+    ],
+}
+
 
 TONE_TEXTS = {
     "ru": {
         "friendly": {
-            "soft_title": "Пора размяться",
-            "soft_body": "Вы уже {minutes} минут в фокусе. Небольшой перерыв пойдет на пользу.",
-            "soft_dialog": "Сделаем короткую паузу?",
-            "hard_title": "Время обязательного перерыва",
-            "hard_body": "Вы долго работаете без паузы. Давайте сейчас отдохнем.",
-            "overlay_prompt": "Время остановиться и передохнуть",
-            "break_done": "Отлично, перерыв завершен",
+            "soft_title": "Фокус в деле",
+            "soft_body": "{minutes} минут отличной работы. Цитата: «{quote}»",
+            "soft_dialog": "Сделаем паузу и вернемся с ясной головой?",
+            "hard_title": "Время обязательного отдыха",
+            "hard_body": "Вы долго в концентрации. Сейчас нужен перерыв. Цитата: «{quote}»",
+            "overlay_prompt": "Пауза на восстановление. Цитата: «{quote}»",
+            "break_done": "Перерыв завершен. Цитата: «{quote}»",
         },
         "care": {
             "soft_title": "Бережем энергию",
-            "soft_body": "{minutes} минут работы подряд. Пора дать глазам и спине отдых.",
-            "soft_dialog": "Небольшая пауза сейчас поможет работать легче дальше.",
+            "soft_body": "{minutes} минут подряд. Пора дать телу отдых. Цитата: «{quote}»",
+            "soft_dialog": "Небольшая пауза сейчас сделает следующий рабочий блок легче.",
             "hard_title": "Нужен перерыв",
-            "hard_body": "Порог непрерывной работы достигнут. Давайте переключимся на отдых.",
-            "overlay_prompt": "Сделайте паузу для восстановления",
-            "break_done": "Вы восстановились, можно продолжать",
+            "hard_body": "Порог непрерывной работы достигнут. Переключаемся на отдых. Цитата: «{quote}»",
+            "overlay_prompt": "Сделайте паузу для восстановления. Цитата: «{quote}»",
+            "break_done": "Вы восстановились. Цитата: «{quote}»",
         },
         "neutral": {
             "soft_title": "Напоминание о паузе",
-            "soft_body": "Активная работа: {minutes} минут.",
+            "soft_body": "Активная работа: {minutes} минут. Цитата: «{quote}»",
             "soft_dialog": "Рекомендуется сделать короткий перерыв.",
             "hard_title": "Обязательный перерыв",
-            "hard_body": "Достигнут максимальный интервал без отдыха.",
-            "overlay_prompt": "Начните перерыв сейчас",
-            "break_done": "Перерыв засчитан",
+            "hard_body": "Достигнут максимальный интервал без отдыха. Цитата: «{quote}»",
+            "overlay_prompt": "Начните перерыв сейчас. Цитата: «{quote}»",
+            "break_done": "Перерыв засчитан. Цитата: «{quote}»",
         },
         "motivation": {
             "soft_title": "Отличный темп",
-            "soft_body": "Уже {minutes} минут продуктивной работы. Пауза поможет сохранить темп.",
-            "soft_dialog": "Отдохнем 5-10 минут и вернемся сильнее?",
+            "soft_body": "{minutes} минут продуктивности. Пауза сохранит темп. Цитата: «{quote}»",
+            "soft_dialog": "Делаем короткий перерыв и возвращаемся еще сильнее?",
             "hard_title": "Перезагрузка обязательна",
-            "hard_body": "Чтобы сохранить концентрацию, нужен перерыв прямо сейчас.",
-            "overlay_prompt": "Время на перезагрузку",
-            "break_done": "Супер, перерыв выполнен",
+            "hard_body": "Чтобы сохранить концентрацию, нужен перерыв прямо сейчас. Цитата: «{quote}»",
+            "overlay_prompt": "Время на перезагрузку. Цитата: «{quote}»",
+            "break_done": "Супер, перерыв выполнен. Цитата: «{quote}»",
         },
         "short": {
             "soft_title": "Пауза?",
-            "soft_body": "{minutes} минут без остановки.",
-            "soft_dialog": "Сделаем короткий перерыв.",
+            "soft_body": "{minutes} минут без остановки. Цитата: «{quote}»",
+            "soft_dialog": "Короткий отдых и обратно в поток.",
             "hard_title": "Стоп, отдых",
-            "hard_body": "Пора сделать обязательную паузу.",
-            "overlay_prompt": "Сейчас перерыв",
-            "break_done": "Готово, продолжаем",
+            "hard_body": "Пора сделать обязательную паузу. Цитата: «{quote}»",
+            "overlay_prompt": "Сейчас перерыв. Цитата: «{quote}»",
+            "break_done": "Готово. Цитата: «{quote}»",
         },
     },
     "en": {
         "friendly": {
-            "soft_title": "Time to stretch",
-            "soft_body": "You have stayed focused for {minutes} minutes. A short break will help.",
-            "soft_dialog": "Want to take a short pause now?",
-            "hard_title": "Mandatory break time",
-            "hard_body": "You have worked for a long stretch. Let's take a break now.",
-            "overlay_prompt": "Time to pause and recharge",
-            "break_done": "Great, break completed",
+            "soft_title": "Focus in Motion",
+            "soft_body": "{minutes} minutes of solid work. Quote: \"{quote}\"",
+            "soft_dialog": "Take a short pause and return with a clear head?",
+            "hard_title": "Mandatory Recovery Time",
+            "hard_body": "You have worked in deep focus for a long stretch. Quote: \"{quote}\"",
+            "overlay_prompt": "Pause and recharge now. Quote: \"{quote}\"",
+            "break_done": "Break completed. Quote: \"{quote}\"",
         },
         "care": {
-            "soft_title": "Protect your energy",
-            "soft_body": "{minutes} minutes in a row. Give your eyes and back some rest.",
+            "soft_title": "Protect Your Energy",
+            "soft_body": "{minutes} minutes in a row. Quote: \"{quote}\"",
             "soft_dialog": "A short pause now will make the next block easier.",
-            "hard_title": "Break needed",
-            "hard_body": "Continuous work threshold reached. Please switch to rest.",
-            "overlay_prompt": "Take a recovery pause",
-            "break_done": "Recovered, ready to continue",
+            "hard_title": "Break Needed",
+            "hard_body": "Continuous work threshold reached. Quote: \"{quote}\"",
+            "overlay_prompt": "Take a recovery pause. Quote: \"{quote}\"",
+            "break_done": "Recovered and ready. Quote: \"{quote}\"",
         },
         "neutral": {
             "soft_title": "Break reminder",
-            "soft_body": "Active work: {minutes} minutes.",
+            "soft_body": "Active work: {minutes} minutes. Quote: \"{quote}\"",
             "soft_dialog": "A short break is recommended.",
             "hard_title": "Mandatory break",
-            "hard_body": "Maximum uninterrupted work interval reached.",
-            "overlay_prompt": "Start break now",
-            "break_done": "Break counted",
+            "hard_body": "Maximum uninterrupted work interval reached. Quote: \"{quote}\"",
+            "overlay_prompt": "Start break now. Quote: \"{quote}\"",
+            "break_done": "Break counted. Quote: \"{quote}\"",
         },
         "motivation": {
             "soft_title": "Great momentum",
-            "soft_body": "{minutes} minutes of productive work. A pause will protect your pace.",
-            "soft_dialog": "Take 5-10 minutes and come back stronger?",
+            "soft_body": "{minutes} minutes of productive work. Quote: \"{quote}\"",
+            "soft_dialog": "Take a short break and come back stronger?",
             "hard_title": "Reset required",
-            "hard_body": "To keep high focus, start a break now.",
-            "overlay_prompt": "Time to reset",
-            "break_done": "Nice, break complete",
+            "hard_body": "To keep high focus, start a break now. Quote: \"{quote}\"",
+            "overlay_prompt": "Time to reset. Quote: \"{quote}\"",
+            "break_done": "Nice reset complete. Quote: \"{quote}\"",
         },
         "short": {
             "soft_title": "Pause?",
-            "soft_body": "{minutes} minutes nonstop.",
-            "soft_dialog": "Let's do a short break.",
+            "soft_body": "{minutes} minutes nonstop. Quote: \"{quote}\"",
+            "soft_dialog": "Short break, then back to flow.",
             "hard_title": "Stop, rest",
-            "hard_body": "Mandatory pause time.",
-            "overlay_prompt": "Break now",
-            "break_done": "Done, continue",
+            "hard_body": "Mandatory pause time. Quote: \"{quote}\"",
+            "overlay_prompt": "Break now. Quote: \"{quote}\"",
+            "break_done": "Done. Quote: \"{quote}\"",
         },
     },
 }
+
+def random_quote(lang: str) -> str:
+    lang_key = "en" if lang == "en" else "ru"
+    return random.choice(QUOTES[lang_key])
 
 
 def tr(lang: str, key: str, **kwargs: object) -> str:
@@ -235,6 +315,9 @@ def tr(lang: str, key: str, **kwargs: object) -> str:
 
     if text is None:
         text = TEXTS.get(lang_key, TEXTS["ru"]).get(key, key)
+
+    if key in QUOTE_MESSAGE_KEYS and "quote" not in kwargs:
+        kwargs["quote"] = random_quote(lang_key)
 
     if kwargs:
         return text.format(**kwargs)
