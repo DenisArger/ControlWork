@@ -4,6 +4,7 @@ import time
 from dataclasses import replace
 
 from PySide6.QtCore import Qt, Signal
+from PySide6.QtGui import QFontMetrics
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -228,15 +229,20 @@ class MainWindow(QMainWindow):
 
     def __init__(self, settings: AppSettings) -> None:
         super().__init__()
+        self._size_with_learning_block = (248, 182)
+        self._size_without_learning_block = (210, 120)
+        self._min_height_with_learning_block = 170
+        self._max_height_with_learning_block = 260
         self.settings = settings
         self._hide_to_tray_enabled = True
+        self._learning_block_visible = True
         self._last_learning_slot: int | None = None
         self._current_quote: ThemedQuote | None = None
         self._current_verb: IrregularVerb | None = None
         self._last_work_seconds = 0
         self._last_until_break_seconds: int | None = None
         self.setWindowFlag(Qt.WindowStaysOnTopHint, True)
-        self.setFixedSize(248, 182)
+        self.setFixedSize(*self._size_with_learning_block)
 
         body = QWidget()
         layout = QVBoxLayout()
@@ -250,10 +256,13 @@ class MainWindow(QMainWindow):
         self.state_label = QLabel()
         self.work_time_label = QLabel()
         self.until_break_label = QLabel()
+        self.toggle_learning_btn = QPushButton()
         self.quote_label = ClickableLabel()
         self.pause_btn = QPushButton()
+        self.toggle_learning_btn.setFixedHeight(19)
         self.pause_btn.setFixedHeight(21)
         self.pause_btn.clicked.connect(self.pause_toggle_requested.emit)
+        self.toggle_learning_btn.clicked.connect(self._toggle_learning_block)
         self.quote_label.clicked.connect(self._on_quote_click)
         self.quote_label.setWordWrap(True)
         self.quote_label.setCursor(Qt.PointingHandCursor)
@@ -263,6 +272,9 @@ class MainWindow(QMainWindow):
         self.until_break_label.setStyleSheet("font-size: 12px;")
         self.quote_label.setStyleSheet(
             "font-size: 11px; color: #243447; background: #eef3f7; border: 1px solid #d0d8e0; border-radius: 5px; padding: 4px;"
+        )
+        self.toggle_learning_btn.setStyleSheet(
+            "font-size: 11px; border: 1px solid #b7c3cf; border-radius: 5px; padding: 0px 6px;"
         )
         self.pause_btn.setStyleSheet(
             "font-size: 12px; border: 1px solid #9aa7b6; border-radius: 6px; padding: 1px 8px;"
@@ -276,6 +288,7 @@ class MainWindow(QMainWindow):
         timers_layout.addWidget(self.work_time_label)
         timers_layout.addWidget(self.until_break_label)
         layout.addLayout(timers_layout)
+        layout.addWidget(self.toggle_learning_btn)
         layout.addWidget(self.quote_label)
         layout.addWidget(self.pause_btn)
 
@@ -283,6 +296,7 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(body)
 
         self.retranslate()
+        self._apply_learning_block_visibility()
         self.refresh_learning_block(force=True)
 
     def set_settings(self, settings: AppSettings) -> None:
@@ -295,6 +309,9 @@ class MainWindow(QMainWindow):
         lang = self.settings.language
         self.setWindowTitle(tr(lang, "app_title"))
         self.pause_btn.setText(tr(lang, "menu_pause"))
+        self.toggle_learning_btn.setText(
+            tr(lang, "btn_hide_quotes") if self._learning_block_visible else tr(lang, "btn_show_quotes")
+        )
         self.update_timers(self._last_work_seconds, self._last_until_break_seconds)
         self.refresh_learning_block(force=True)
 
@@ -351,6 +368,7 @@ class MainWindow(QMainWindow):
             topic = tr(self.settings.language, f"quote_topic_{self._current_quote.topic}")
             author = format_thematic_quote_author(self._current_quote)
             self.quote_label.setText(f"{topic}: «{self._current_quote.text}»\n- {author}")
+            self._update_learning_block_height()
             return
 
         self._current_verb = random_irregular_verb(self.settings.language, self._current_verb)
@@ -359,10 +377,39 @@ class MainWindow(QMainWindow):
             f"{verb_topic}: {self._current_verb.base} - {self._current_verb.past} - {self._current_verb.past_participle}\n"
             f"{self._current_verb.translation}"
         )
+        self._update_learning_block_height()
 
     def _on_quote_click(self) -> None:
         self._last_learning_slot = None
         self.refresh_learning_block(force=True)
+
+    def _toggle_learning_block(self) -> None:
+        self._learning_block_visible = not self._learning_block_visible
+        self._apply_learning_block_visibility()
+        self.retranslate()
+
+    def _apply_learning_block_visibility(self) -> None:
+        self.quote_label.setVisible(self._learning_block_visible)
+        if self._learning_block_visible:
+            self.setFixedWidth(self._size_with_learning_block[0])
+            self._update_learning_block_height()
+        else:
+            self.setFixedSize(*self._size_without_learning_block)
+
+    def _update_learning_block_height(self) -> None:
+        if not self._learning_block_visible:
+            return
+
+        base_height_without_quote = self._size_without_learning_block[1]
+        content_width = max(120, self._size_with_learning_block[0] - 20)
+        metrics = QFontMetrics(self.quote_label.font())
+        text_rect = metrics.boundingRect(0, 0, content_width, 2000, Qt.TextWordWrap, self.quote_label.text())
+        quote_height = text_rect.height() + 14
+
+        target_height = base_height_without_quote + quote_height
+        target_height = max(self._min_height_with_learning_block, target_height)
+        target_height = min(self._max_height_with_learning_block, target_height)
+        self.setFixedHeight(target_height)
 
     def closeEvent(self, event) -> None:  # type: ignore[override]
         if self._hide_to_tray_enabled:
