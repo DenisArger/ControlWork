@@ -58,6 +58,7 @@ TEXTS = {
         "tone_neutral": "Neutral",
         "tone_motivation": "Motivational",
         "tone_short": "Short",
+        "quote_topic_irregular": "Irregular Verbs",
         "quote_topic_family": "Family",
         "quote_topic_discipline": "Discipline",
         "quote_topic_health": "Health",
@@ -119,6 +120,7 @@ TEXTS = {
         "tone_neutral": "Нейтральный",
         "tone_motivation": "Мотивационный",
         "tone_short": "Короткий",
+        "quote_topic_irregular": "Неправильные глаголы",
         "quote_topic_family": "Семья",
         "quote_topic_discipline": "Дисциплина",
         "quote_topic_health": "Здоровье",
@@ -219,6 +221,14 @@ class ThemedQuote:
     text: str
     author: str
     translation: str | None = None
+
+
+@dataclass(frozen=True)
+class IrregularVerb:
+    base: str
+    past: str
+    past_participle: str
+    translation: str
 
 
 BASE_THEMED_QUOTES: dict[str, dict[str, list[ThemedQuote]]] = {
@@ -364,12 +374,131 @@ BASE_THEMED_QUOTES: dict[str, dict[str, list[ThemedQuote]]] = {
 
 THEMED_QUOTES: dict[str, dict[str, list[ThemedQuote]]] = BASE_THEMED_QUOTES
 
+IRREGULAR_VERBS: dict[str, list[IrregularVerb]] = {
+    "ru": [
+        IrregularVerb("be", "was/were", "been", "быть"),
+        IrregularVerb("begin", "began", "begun", "начинать"),
+        IrregularVerb("break", "broke", "broken", "ломать"),
+        IrregularVerb("bring", "brought", "brought", "приносить"),
+        IrregularVerb("build", "built", "built", "строить"),
+        IrregularVerb("buy", "bought", "bought", "покупать"),
+        IrregularVerb("choose", "chose", "chosen", "выбирать"),
+        IrregularVerb("come", "came", "come", "приходить"),
+        IrregularVerb("do", "did", "done", "делать"),
+        IrregularVerb("drink", "drank", "drunk", "пить"),
+        IrregularVerb("drive", "drove", "driven", "водить"),
+        IrregularVerb("eat", "ate", "eaten", "есть"),
+        IrregularVerb("feed", "fed", "fed", "кормить"),
+        IrregularVerb("feel", "felt", "felt", "чувствовать"),
+        IrregularVerb("find", "found", "found", "находить"),
+        IrregularVerb("forget", "forgot", "forgotten", "забывать"),
+        IrregularVerb("get", "got", "got", "получать"),
+        IrregularVerb("give", "gave", "given", "давать"),
+        IrregularVerb("go", "went", "gone", "идти"),
+        IrregularVerb("have", "had", "had", "иметь"),
+        IrregularVerb("hold", "held", "held", "держать (в руке)"),
+        IrregularVerb("keep", "kept", "kept", "содержать, хранить"),
+        IrregularVerb("know", "knew", "known", "знать"),
+        IrregularVerb("leave", "left", "left", "покидать"),
+        IrregularVerb("make", "made", "made", "делать/создавать"),
+        IrregularVerb("mean", "meant", "meant", "означать"),
+        IrregularVerb("meet", "met", "met", "встречать"),
+        IrregularVerb("read", "read", "read", "читать"),
+        IrregularVerb("run", "ran", "run", "бежать"),
+        IrregularVerb("say", "said", "said", "говорить"),
+        IrregularVerb("see", "saw", "seen", "видеть"),
+        IrregularVerb("sleep", "slept", "slept", "спать"),
+        IrregularVerb("speak", "spoke", "spoken", "говорить"),
+        IrregularVerb("sweep", "swept", "swept", "подметать"),
+        IrregularVerb("take", "took", "taken", "брать"),
+        IrregularVerb("think", "thought", "thought", "думать"),
+        IrregularVerb("deal", "dealt", "dealt", "иметь дело с"),
+        IrregularVerb("become", "became", "become", "становиться"),
+        IrregularVerb("blow", "blew", "blown", "дуть"),
+        IrregularVerb("draw", "drew", "drawn", "рисовать"),
+        IrregularVerb("fly", "flew", "flown", "летать"),
+        IrregularVerb("grow", "grew", "grown", "расти"),
+        IrregularVerb("ring", "rang", "rung", "звонить, звенеть"),
+        IrregularVerb("show", "showed", "shown", "показывать"),
+        IrregularVerb("sing", "sang", "sung", "петь"),
+        IrregularVerb("sink", "sank", "sunk", "тонуть"),
+        IrregularVerb("swim", "swam", "swum", "плавать"),
+        IrregularVerb("throw", "threw", "thrown", "бросать"),
+        IrregularVerb("wear", "wore", "worn", "носить"),
+        IrregularVerb("write", "wrote", "written", "писать"),
+        IrregularVerb("win", "won", "won", "побеждать"),
+    ],
+    "en": [
+        IrregularVerb("be", "was/were", "been", "to exist"),
+        IrregularVerb("begin", "began", "begun", "start"),
+        IrregularVerb("break", "broke", "broken", "separate into pieces"),
+        IrregularVerb("bring", "brought", "brought", "carry to a place"),
+        IrregularVerb("build", "built", "built", "construct"),
+        IrregularVerb("buy", "bought", "bought", "purchase"),
+        IrregularVerb("choose", "chose", "chosen", "select"),
+        IrregularVerb("come", "came", "come", "move toward"),
+        IrregularVerb("do", "did", "done", "perform"),
+        IrregularVerb("drink", "drank", "drunk", "consume liquid"),
+        IrregularVerb("drive", "drove", "driven", "operate a vehicle"),
+        IrregularVerb("eat", "ate", "eaten", "consume food"),
+        IrregularVerb("feed", "fed", "fed", "give food to"),
+        IrregularVerb("feel", "felt", "felt", "sense"),
+        IrregularVerb("find", "found", "found", "discover"),
+        IrregularVerb("forget", "forgot", "forgotten", "fail to remember"),
+        IrregularVerb("get", "got", "got", "obtain"),
+        IrregularVerb("give", "gave", "given", "provide"),
+        IrregularVerb("go", "went", "gone", "move"),
+        IrregularVerb("have", "had", "had", "possess"),
+        IrregularVerb("hold", "held", "held", "grip"),
+        IrregularVerb("keep", "kept", "kept", "retain"),
+        IrregularVerb("know", "knew", "known", "be aware of"),
+        IrregularVerb("leave", "left", "left", "go away"),
+        IrregularVerb("make", "made", "made", "create"),
+        IrregularVerb("mean", "meant", "meant", "signify"),
+        IrregularVerb("meet", "met", "met", "encounter"),
+        IrregularVerb("read", "read", "read", "interpret text"),
+        IrregularVerb("run", "ran", "run", "move fast"),
+        IrregularVerb("say", "said", "said", "speak words"),
+        IrregularVerb("see", "saw", "seen", "perceive visually"),
+        IrregularVerb("sleep", "slept", "slept", "rest"),
+        IrregularVerb("speak", "spoke", "spoken", "talk"),
+        IrregularVerb("sweep", "swept", "swept", "clean with a broom"),
+        IrregularVerb("take", "took", "taken", "carry"),
+        IrregularVerb("think", "thought", "thought", "consider"),
+        IrregularVerb("deal", "dealt", "dealt", "handle"),
+        IrregularVerb("become", "became", "become", "turn into"),
+        IrregularVerb("blow", "blew", "blown", "send out air"),
+        IrregularVerb("draw", "drew", "drawn", "sketch"),
+        IrregularVerb("fly", "flew", "flown", "move through air"),
+        IrregularVerb("grow", "grew", "grown", "increase"),
+        IrregularVerb("ring", "rang", "rung", "sound"),
+        IrregularVerb("show", "showed", "shown", "display"),
+        IrregularVerb("sing", "sang", "sung", "perform with voice"),
+        IrregularVerb("sink", "sank", "sunk", "go down below surface"),
+        IrregularVerb("swim", "swam", "swum", "move in water"),
+        IrregularVerb("throw", "threw", "thrown", "send through air"),
+        IrregularVerb("wear", "wore", "worn", "have clothing on"),
+        IrregularVerb("write", "wrote", "written", "produce text"),
+        IrregularVerb("win", "won", "won", "be victorious"),
+    ],
+}
+
 
 def random_thematic_quote(lang: str, previous: ThemedQuote | None = None) -> ThemedQuote:
     lang_key = "en" if lang == "en" else "ru"
     pool = [quote for topic_quotes in THEMED_QUOTES[lang_key].values() for quote in topic_quotes]
     if previous is not None:
         filtered = [quote for quote in pool if quote != previous]
+        if filtered:
+            pool = filtered
+    return random.choice(pool)
+
+
+def random_irregular_verb(lang: str, previous: IrregularVerb | None = None) -> IrregularVerb:
+    lang_key = "en" if lang == "en" else "ru"
+    pool = IRREGULAR_VERBS[lang_key]
+    if previous is not None:
+        filtered = [verb for verb in pool if verb != previous]
         if filtered:
             pool = filtered
     return random.choice(pool)

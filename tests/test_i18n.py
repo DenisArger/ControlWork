@@ -1,4 +1,12 @@
-from controlwork.i18n import THEMED_QUOTES, ThemedQuote, format_thematic_quote_author, random_thematic_quote, tr
+from controlwork.i18n import (
+    IRREGULAR_VERBS,
+    THEMED_QUOTES,
+    ThemedQuote,
+    format_thematic_quote_author,
+    random_irregular_verb,
+    random_thematic_quote,
+    tr,
+)
 
 
 def test_ru_tone_variants_are_different() -> None:
@@ -74,3 +82,51 @@ def test_random_thematic_quote_can_change_from_previous() -> None:
     previous = random_thematic_quote("ru")
     current = random_thematic_quote("ru", previous)
     assert current != previous
+
+
+def test_irregular_verbs_available_for_both_languages() -> None:
+    assert len(IRREGULAR_VERBS["ru"]) >= 20
+    assert len(IRREGULAR_VERBS["en"]) >= 20
+
+
+def test_random_irregular_verb_can_change_from_previous() -> None:
+    previous = random_irregular_verb("ru")
+    current = random_irregular_verb("ru", previous)
+    assert current != previous
+
+
+def test_screenshot_irregular_verbs_exist() -> None:
+    required = {
+        "deal",
+        "feed",
+        "leave",
+        "meet",
+        "sleep",
+        "feel",
+        "mean",
+        "hold",
+        "keep",
+        "read",
+        "sweep",
+        "blow",
+        "fly",
+        "know",
+        "draw",
+        "grow",
+        "throw",
+        "show",
+        "wear",
+        "come",
+        "become",
+        "begin",
+        "drink",
+        "run",
+        "swim",
+        "sink",
+        "sing",
+        "ring",
+    }
+    ru_bases = {verb.base for verb in IRREGULAR_VERBS["ru"]}
+    en_bases = {verb.base for verb in IRREGULAR_VERBS["en"]}
+    assert required.issubset(ru_bases)
+    assert required.issubset(en_bases)

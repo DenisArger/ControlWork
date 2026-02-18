@@ -20,7 +20,14 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from ..i18n import ThemedQuote, format_thematic_quote_author, random_thematic_quote, tr
+from ..i18n import (
+    IrregularVerb,
+    ThemedQuote,
+    format_thematic_quote_author,
+    random_irregular_verb,
+    random_thematic_quote,
+    tr,
+)
 from ..models import AppSettings, REMINDER_TONES, TrackerState
 
 
@@ -223,8 +230,9 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.settings = settings
         self._hide_to_tray_enabled = True
-        self._last_quote_minute_key: int | None = None
+        self._last_learning_slot: int | None = None
         self._current_quote: ThemedQuote | None = None
+        self._current_verb: IrregularVerb | None = None
         self._last_work_seconds = 0
         self._last_until_break_seconds: int | None = None
         self.setWindowFlag(Qt.WindowStaysOnTopHint, True)
@@ -275,7 +283,7 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(body)
 
         self.retranslate()
-        self.refresh_quote(force=True)
+        self.refresh_learning_block(force=True)
 
     def set_settings(self, settings: AppSettings) -> None:
         self.settings = settings
@@ -288,7 +296,7 @@ class MainWindow(QMainWindow):
         self.setWindowTitle(tr(lang, "app_title"))
         self.pause_btn.setText(tr(lang, "menu_pause"))
         self.update_timers(self._last_work_seconds, self._last_until_break_seconds)
-        self.refresh_quote(force=True)
+        self.refresh_learning_block(force=True)
 
     def update_state(self, state: TrackerState) -> None:
         key_map = {
@@ -331,18 +339,30 @@ class MainWindow(QMainWindow):
     def _move_to_anchor(self) -> None:
         self.move(20, 60)
 
-    def refresh_quote(self, force: bool = False) -> None:
-        minute_key = int(time.time() // 60)
-        if not force and self._last_quote_minute_key == minute_key:
+    def refresh_learning_block(self, force: bool = False) -> None:
+        slot = int(time.time() // 30)
+        if not force and self._last_learning_slot == slot:
             return
-        self._last_quote_minute_key = minute_key
-        self._current_quote = random_thematic_quote(self.settings.language, self._current_quote)
-        topic = tr(self.settings.language, f"quote_topic_{self._current_quote.topic}")
-        author = format_thematic_quote_author(self._current_quote)
-        self.quote_label.setText(f"{topic}: «{self._current_quote.text}»\n- {author}")
+        self._last_learning_slot = slot
+        show_quote = slot % 2 == 0
+
+        if show_quote:
+            self._current_quote = random_thematic_quote(self.settings.language, self._current_quote)
+            topic = tr(self.settings.language, f"quote_topic_{self._current_quote.topic}")
+            author = format_thematic_quote_author(self._current_quote)
+            self.quote_label.setText(f"{topic}: «{self._current_quote.text}»\n- {author}")
+            return
+
+        self._current_verb = random_irregular_verb(self.settings.language, self._current_verb)
+        verb_topic = tr(self.settings.language, "quote_topic_irregular")
+        self.quote_label.setText(
+            f"{verb_topic}: {self._current_verb.base} - {self._current_verb.past} - {self._current_verb.past_participle}\n"
+            f"{self._current_verb.translation}"
+        )
 
     def _on_quote_click(self) -> None:
-        self.refresh_quote(force=True)
+        self._last_learning_slot = None
+        self.refresh_learning_block(force=True)
 
     def closeEvent(self, event) -> None:  # type: ignore[override]
         if self._hide_to_tray_enabled:
