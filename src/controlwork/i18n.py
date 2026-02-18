@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import random
+from dataclasses import dataclass
 
 TEXTS = {
     "en": {
@@ -57,6 +58,12 @@ TEXTS = {
         "tone_neutral": "Neutral",
         "tone_motivation": "Motivational",
         "tone_short": "Short",
+        "quote_topic_family": "Family",
+        "quote_topic_discipline": "Discipline",
+        "quote_topic_health": "Health",
+        "quote_topic_children": "Children",
+        "quote_topic_leadership": "Leadership",
+        "quote_topic_bible": "Bible",
     },
     "ru": {
         "app_title": "ControlWork",
@@ -112,6 +119,12 @@ TEXTS = {
         "tone_neutral": "Нейтральный",
         "tone_motivation": "Мотивационный",
         "tone_short": "Короткий",
+        "quote_topic_family": "Семья",
+        "quote_topic_discipline": "Дисциплина",
+        "quote_topic_health": "Здоровье",
+        "quote_topic_children": "Дети",
+        "quote_topic_leadership": "Лидерство",
+        "quote_topic_bible": "Библейские",
     },
 }
 
@@ -199,6 +212,173 @@ QUOTES = {
         "Clear priorities make forward motion easier.",
     ],
 }
+
+@dataclass(frozen=True)
+class ThemedQuote:
+    topic: str
+    text: str
+    author: str
+    translation: str | None = None
+
+
+BASE_THEMED_QUOTES: dict[str, dict[str, list[ThemedQuote]]] = {
+    "ru": {
+        "family": [
+            ThemedQuote("family", "Все счастливые семьи похожи друг на друга.", "Лев Толстой"),
+            ThemedQuote("family", "Семья - один из шедевров природы.", "Джордж Сантаяна"),
+            ThemedQuote("family", "Если хотите изменить мир, идите домой и любите свою семью.", "Мать Тереза"),
+            ThemedQuote("family", "Единственная скала, которая не подводит, - семья.", "Ли Якокка"),
+            ThemedQuote("family", "Семья - самое важное в мире.", "Принцесса Диана"),
+        ],
+        "discipline": [
+            ThemedQuote("discipline", "Мы есть то, что постоянно делаем.", "Аристотель"),
+            ThemedQuote("discipline", "Дисциплина - мост между целями и достижениями.", "Джим Рон"),
+            ThemedQuote("discipline", "Дисциплина равна свободе.", "Джоко Виллинк"),
+            ThemedQuote("discipline", "Я не боюсь того, кто тренирует 10 000 ударов однажды.", "Брюс Ли"),
+            ThemedQuote("discipline", "Никто не свободен, кто не владеет собой.", "Эпиктет"),
+        ],
+        "health": [
+            ThemedQuote("health", "Пусть пища будет твоим лекарством.", "Гиппократ"),
+            ThemedQuote("health", "Здоровье не все, но без здоровья все - ничто.", "Артур Шопенгауэр"),
+            ThemedQuote("health", "У кого нет времени для здоровья, найдет время для болезни.", "Эдвард Стэнли"),
+            ThemedQuote("health", "Физическая форма - первое условие счастья.", "Джозеф Пилатес"),
+            ThemedQuote("health", "Величайшее богатство - здоровье.", "Вергилий"),
+        ],
+        "children": [
+            ThemedQuote("children", "Лучший способ сделать детей хорошими - сделать их счастливыми.", "Оскар Уайльд"),
+            ThemedQuote("children", "Детей нет - есть люди.", "Януш Корчак"),
+            ThemedQuote("children", "Никогда не помогайте ребенку с задачей, которую он может решить сам.", "Мария Монтессори"),
+            ThemedQuote("children", "О душе общества лучше всего говорит то, как оно относится к детям.", "Нельсон Мандела"),
+            ThemedQuote("children", "Детям больше нужен пример, чем критика.", "Жозеф Жубер"),
+        ],
+        "leadership": [
+            ThemedQuote("leadership", "Лидерство - это способность превращать видение в реальность.", "Уоррен Беннис"),
+            ThemedQuote("leadership", "Лидер знает путь, идет этим путем и показывает путь.", "Джон Максвелл"),
+            ThemedQuote("leadership", "Менеджмент - делать дела правильно, лидерство - делать правильные дела.", "Питер Друкер"),
+            ThemedQuote("leadership", "Пример - не главный способ влиять на других, а единственный.", "Альберт Швейцер"),
+            ThemedQuote("leadership", "Если ваши действия вдохновляют других мечтать больше, вы лидер.", "Джон Куинси Адамс"),
+        ],
+        "bible": [
+            ThemedQuote(
+                "bible",
+                "Больше всего хранимого храни сердце твое, потому что из него источники жизни.",
+                "Библия, Притчи 4:23",
+            ),
+            ThemedQuote(
+                "bible",
+                "Делая добро, да не унываем, ибо в свое время пожнем, если не ослабеем.",
+                "Библия, Галатам 6:9",
+            ),
+            ThemedQuote(
+                "bible",
+                "Все могу в укрепляющем меня Иисусе Христе.",
+                "Библия, Филиппийцам 4:13",
+            ),
+            ThemedQuote(
+                "bible",
+                "Так да светит свет ваш пред людьми, чтобы они видели ваши добрые дела и прославляли Отца вашего Небесного.",
+                "Библия, Матфея 5:16",
+            ),
+            ThemedQuote(
+                "bible",
+                "А надеющиеся на Господа обновятся в силе: поднимут крылья, как орлы, потекут - и не устанут, пойдут - и не утомятся.",
+                "Библия, Исаия 40:31",
+            ),
+            ThemedQuote(
+                "bible",
+                "Пусть любовь и верность никогда не покидают тебя; навяжи их на шею, запиши их на скрижали сердца.",
+                "Библия, Притчи 3:3",
+                translation="nrp",
+            ),
+            ThemedQuote(
+                "bible",
+                "Не заботьтесь ни о чем, но во всем, с молитвой и просьбой, с благодарностью открывайте свои желания Богу.",
+                "Библия, Филиппийцам 4:6",
+                translation="nrp",
+            ),
+            ThemedQuote(
+                "bible",
+                "Прежде всего ищите Царства Божьего и Его праведности, и все это вам тоже будет дано.",
+                "Библия, Матфея 6:33",
+                translation="nrp",
+            ),
+            ThemedQuote(
+                "bible",
+                "Будь тверд и мужественен! Не бойся и не ужасайся, потому что с тобой Господь, твой Бог, куда бы ты ни пошел.",
+                "Библия, Иисуса Навина 1:9",
+                translation="nrp",
+            ),
+            ThemedQuote(
+                "bible",
+                "Мы знаем, что Бог во всем действует во благо тех, кто любит Его, кто призван согласно Его замыслу.",
+                "Библия, Римлянам 8:28",
+                translation="nrp",
+            ),
+        ],
+    },
+    "en": {
+        "family": [
+            ThemedQuote("family", "All happy families are alike.", "Leo Tolstoy"),
+            ThemedQuote("family", "The family is one of nature's masterpieces.", "George Santayana"),
+            ThemedQuote("family", "If you want to change the world, go home and love your family.", "Mother Teresa"),
+            ThemedQuote("family", "The only rock I know that stays steady is the family.", "Lee Iacocca"),
+            ThemedQuote("family", "Family is the most important thing in the world.", "Princess Diana"),
+        ],
+        "discipline": [
+            ThemedQuote("discipline", "We are what we repeatedly do.", "Aristotle"),
+            ThemedQuote("discipline", "Discipline is the bridge between goals and accomplishment.", "Jim Rohn"),
+            ThemedQuote("discipline", "Discipline equals freedom.", "Jocko Willink"),
+            ThemedQuote("discipline", "I fear not the man who has practiced 10,000 kicks once.", "Bruce Lee"),
+            ThemedQuote("discipline", "No man is free who is not master of himself.", "Epictetus"),
+        ],
+        "health": [
+            ThemedQuote("health", "Let food be thy medicine.", "Hippocrates"),
+            ThemedQuote("health", "Health is not everything, but without health everything is nothing.", "Arthur Schopenhauer"),
+            ThemedQuote("health", "Those who think they have no time for health will sooner or later have to find time for illness.", "Edward Stanley"),
+            ThemedQuote("health", "Physical fitness is the first requisite of happiness.", "Joseph Pilates"),
+            ThemedQuote("health", "The greatest wealth is health.", "Virgil"),
+        ],
+        "children": [
+            ThemedQuote("children", "The best way to make children good is to make them happy.", "Oscar Wilde"),
+            ThemedQuote("children", "There are no children, there are people.", "Janusz Korczak"),
+            ThemedQuote("children", "Never help a child with a task at which he feels he can succeed.", "Maria Montessori"),
+            ThemedQuote("children", "There can be no keener revelation of a society's soul than the way it treats its children.", "Nelson Mandela"),
+            ThemedQuote("children", "Children need models rather than critics.", "Joseph Joubert"),
+        ],
+        "leadership": [
+            ThemedQuote("leadership", "Leadership is the capacity to translate vision into reality.", "Warren Bennis"),
+            ThemedQuote("leadership", "A leader knows the way, goes the way, and shows the way.", "John C. Maxwell"),
+            ThemedQuote("leadership", "Management is doing things right; leadership is doing the right things.", "Peter Drucker"),
+            ThemedQuote("leadership", "Example is not the main thing in influencing others. It is the only thing.", "Albert Schweitzer"),
+            ThemedQuote("leadership", "If your actions inspire others to dream more, you are a leader.", "John Quincy Adams"),
+        ],
+        "bible": [
+            ThemedQuote("bible", "Above all else, guard your heart.", "Bible, Proverbs 4:23"),
+            ThemedQuote("bible", "Let us not become weary in doing good.", "Bible, Galatians 6:9"),
+            ThemedQuote("bible", "I can do all things through Christ who strengthens me.", "Bible, Philippians 4:13"),
+            ThemedQuote("bible", "Let your light shine before others.", "Bible, Matthew 5:16"),
+            ThemedQuote("bible", "Those who hope in the Lord will renew their strength.", "Bible, Isaiah 40:31"),
+        ],
+    },
+}
+
+THEMED_QUOTES: dict[str, dict[str, list[ThemedQuote]]] = BASE_THEMED_QUOTES
+
+
+def random_thematic_quote(lang: str, previous: ThemedQuote | None = None) -> ThemedQuote:
+    lang_key = "en" if lang == "en" else "ru"
+    pool = [quote for topic_quotes in THEMED_QUOTES[lang_key].values() for quote in topic_quotes]
+    if previous is not None:
+        filtered = [quote for quote in pool if quote != previous]
+        if filtered:
+            pool = filtered
+    return random.choice(pool)
+
+
+def format_thematic_quote_author(quote: ThemedQuote) -> str:
+    if quote.translation is not None and quote.translation.lower() == "nrp":
+        return f"{quote.author} (НРП)"
+    return quote.author
 
 
 TONE_TEXTS = {

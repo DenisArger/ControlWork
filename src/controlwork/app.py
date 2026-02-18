@@ -120,6 +120,7 @@ class ControlWorkApplication:
             self.tracker.get_cycle_active_seconds(),
             self.tracker.get_seconds_to_next_break(),
         )
+        self.main_window.refresh_quote()
 
         for event in outcome.reminders:
             self._handle_reminder(event)
@@ -191,6 +192,7 @@ class ControlWorkApplication:
 
         self.main_window.set_settings(settings)
         self.main_window.retranslate()
+        self.main_window.refresh_quote(force=True)
         self.break_overlay.set_language(settings.language, settings.reminder_tone)
         self._retranslate_tray()
 

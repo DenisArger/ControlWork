@@ -1,4 +1,4 @@
-from controlwork.i18n import tr
+from controlwork.i18n import THEMED_QUOTES, ThemedQuote, format_thematic_quote_author, random_thematic_quote, tr
 
 
 def test_ru_tone_variants_are_different() -> None:
@@ -29,3 +29,48 @@ def test_quote_placeholder_is_filled_automatically() -> None:
 def test_quote_can_be_overridden_explicitly() -> None:
     text = tr("en", "break_done", _tone="friendly", quote="Test quote")
     assert "Test quote" in text
+
+
+def test_themed_quotes_have_required_topics_and_sizes() -> None:
+    required_topics = {"family", "discipline", "health", "children", "leadership", "bible"}
+    ru_topics = set(THEMED_QUOTES["ru"].keys())
+    en_topics = set(THEMED_QUOTES["en"].keys())
+    assert ru_topics == required_topics
+    assert en_topics == required_topics
+    for topic in required_topics:
+        if topic == "bible":
+            assert len(THEMED_QUOTES["ru"][topic]) == 10
+        else:
+            assert len(THEMED_QUOTES["ru"][topic]) == 5
+        assert len(THEMED_QUOTES["en"][topic]) == 5
+
+
+def test_themed_quotes_have_no_cross_topic_duplicates() -> None:
+    for lang in ("ru", "en"):
+        seen: set[tuple[str, str]] = set()
+        for topic_quotes in THEMED_QUOTES[lang].values():
+            for quote in topic_quotes:
+                key = (quote.text, quote.author)
+                assert key not in seen
+                seen.add(key)
+
+
+def test_no_technical_placeholder_quotes_present() -> None:
+    for lang in ("ru", "en"):
+        for topic_quotes in THEMED_QUOTES[lang].values():
+            for quote in topic_quotes:
+                assert "ControlWork" not in quote.author
+                assert "#1:" not in quote.text
+
+
+def test_thematic_quote_author_translation_suffix_rule() -> None:
+    synodal = ThemedQuote(topic="bible", text="x", author="Библия, Притчи 4:23")
+    nrp = ThemedQuote(topic="bible", text="x", author="Библия, Притчи 4:23", translation="nrp")
+    assert format_thematic_quote_author(synodal) == "Библия, Притчи 4:23"
+    assert format_thematic_quote_author(nrp) == "Библия, Притчи 4:23 (НРП)"
+
+
+def test_random_thematic_quote_can_change_from_previous() -> None:
+    previous = random_thematic_quote("ru")
+    current = random_thematic_quote("ru", previous)
+    assert current != previous
