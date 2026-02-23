@@ -9,6 +9,7 @@ from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
     QDialog,
+    QFileDialog,
     QFormLayout,
     QHBoxLayout,
     QLabel,
@@ -30,6 +31,7 @@ from ..i18n import (
     tr,
 )
 from ..models import AppSettings, REMINDER_TONES, TrackerState
+from ..services.learning_content import LearningCard, LearningContentError, load_learning_cards
 
 
 class ClickableLabel(QLabel):
@@ -135,6 +137,12 @@ class SettingsDialog(QDialog):
         self.soft_edit = QLineEdit()
         self.hard_edit = QLineEdit()
         self.reset_edit = QLineEdit()
+        self.learning_path_edit = QLineEdit()
+        self.learning_browse_btn = QPushButton()
+        self.learning_browse_btn.clicked.connect(self._browse_learning_json)
+        learning_path_row = QHBoxLayout()
+        learning_path_row.addWidget(self.learning_path_edit)
+        learning_path_row.addWidget(self.learning_browse_btn)
 
         form = QFormLayout()
         self.language_label = QLabel()
@@ -145,6 +153,7 @@ class SettingsDialog(QDialog):
         self.soft_label = QLabel()
         self.hard_label = QLabel()
         self.reset_label = QLabel()
+        self.learning_path_label = QLabel()
 
         form.addRow(self.language_label, self.language_combo)
         form.addRow(self.autostart_label, self.autostart_checkbox)
@@ -154,6 +163,7 @@ class SettingsDialog(QDialog):
         form.addRow(self.soft_label, self.soft_edit)
         form.addRow(self.hard_label, self.hard_edit)
         form.addRow(self.reset_label, self.reset_edit)
+        form.addRow(self.learning_path_label, learning_path_row)
 
         self.cancel_btn = QPushButton()
         self.save_btn = QPushButton()
@@ -184,6 +194,7 @@ class SettingsDialog(QDialog):
         self.soft_edit.setText(",".join(str(v) for v in settings.soft_points_min))
         self.hard_edit.setText(",".join(str(v) for v in settings.hard_points_min))
         self.reset_edit.setText(settings.workday_reset_time)
+        self.learning_path_edit.setText(_format_learning_paths(settings.learning_json_paths))
 
     def retranslate(self) -> None:
         lang = self.settings.language
@@ -196,6 +207,8 @@ class SettingsDialog(QDialog):
         self.soft_label.setText(tr(lang, "settings_soft"))
         self.hard_label.setText(tr(lang, "settings_hard"))
         self.reset_label.setText(tr(lang, "settings_reset"))
+        self.learning_path_label.setText(tr(lang, "settings_learning_json"))
+        self.learning_browse_btn.setText(tr(lang, "settings_browse"))
         self.cancel_btn.setText(tr(lang, "btn_cancel"))
         self.save_btn.setText(tr(lang, "settings_save"))
         for idx, tone in enumerate(REMINDER_TONES):
@@ -218,10 +231,26 @@ class SettingsDialog(QDialog):
             soft_points_min=soft_points,
             hard_points_min=hard_points,
             workday_reset_time=self.reset_edit.text().strip() or "04:00",
+            learning_json_paths=_parse_learning_paths(self.learning_path_edit.text()),
         )
         next_settings.normalize()
         self.settings = next_settings
         self.accept()
+
+    def _browse_learning_json(self) -> None:
+        selected, _ = QFileDialog.getOpenFileNames(
+            self,
+            tr(self.settings.language, "settings_learning_json"),
+            "",
+            "JSON Files (*.json);;All Files (*)",
+        )
+        if not selected:
+            return
+        existing = _parse_learning_paths(self.learning_path_edit.text())
+        for path in selected:
+            if path not in existing:
+                existing.append(path)
+        self.learning_path_edit.setText(_format_learning_paths(existing))
 
 
 class MainWindow(QMainWindow):
@@ -239,6 +268,10 @@ class MainWindow(QMainWindow):
         self._last_learning_slot: int | None = None
         self._current_quote: ThemedQuote | None = None
         self._current_verb: IrregularVerb | None = None
+        self._custom_cards: list[LearningCard] = []
+        self._current_card: LearningCard | None = None
+        self._custom_json_error_keys: list[str] = []
+        self._custom_json_error_shown = False
         self._last_work_seconds = 0
         self._last_until_break_seconds: int | None = None
         self.setWindowFlag(Qt.WindowStaysOnTopHint, True)
@@ -297,11 +330,14 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(body)
 
         self.retranslate()
+        self._reload_custom_cards()
         self._apply_learning_block_visibility()
         self.refresh_learning_block(force=True)
 
     def set_settings(self, settings: AppSettings) -> None:
         self.settings = settings
+        self._custom_json_error_shown = False
+        self._reload_custom_cards()
 
     def set_hide_to_tray_enabled(self, enabled: bool) -> None:
         self._hide_to_tray_enabled = enabled
@@ -362,16 +398,30 @@ class MainWindow(QMainWindow):
         if not force and self._last_learning_slot == slot:
             return
         self._last_learning_slot = slot
-        show_quote = slot % 2 == 0
+        learning_slot = slot % 3
 
-        if show_quote:
-            self._current_quote = random_thematic_quote(self.settings.language, self._current_quote)
-            topic = tr(self.settings.language, f"quote_topic_{self._current_quote.topic}")
-            author = format_thematic_quote_author(self._current_quote)
-            self.quote_label.setText(f"{topic}: «{self._current_quote.text}»\n- {author}")
-            self._update_learning_block_height()
+        if learning_slot == 0:
+            self._render_quote()
             return
 
+        if learning_slot == 1:
+            self._render_irregular_verb()
+            return
+
+        if self._custom_cards:
+            self._render_custom_card()
+            return
+
+        self._render_quote()
+
+    def _render_quote(self) -> None:
+        self._current_quote = random_thematic_quote(self.settings.language, self._current_quote)
+        topic = tr(self.settings.language, f"quote_topic_{self._current_quote.topic}")
+        author = format_thematic_quote_author(self._current_quote)
+        self.quote_label.setText(f"{topic}: «{self._current_quote.text}»\n- {author}")
+        self._update_learning_block_height()
+
+    def _render_irregular_verb(self) -> None:
         self._current_verb = random_irregular_verb(self.settings.language, self._current_verb)
         verb_topic = tr(self.settings.language, "quote_topic_irregular")
         self.quote_label.setText(
@@ -379,6 +429,50 @@ class MainWindow(QMainWindow):
             f"{self._current_verb.translation}"
         )
         self._update_learning_block_height()
+
+    def _render_custom_card(self) -> None:
+        pool = self._custom_cards
+        if self._current_card is not None and len(pool) > 1:
+            filtered = [card for card in pool if card != self._current_card]
+            if filtered:
+                pool = filtered
+        self._current_card = pool[int(time.time()) % len(pool)]
+        topic = tr(self.settings.language, "quote_topic_custom_json")
+
+        lines = [f"{topic}: {self._current_card.english}", self._current_card.russian]
+        if self._current_card.example:
+            lines.append(f"{tr(self.settings.language, 'learning_example_prefix')}: {self._current_card.example}")
+        if self._current_card.example_translation:
+            lines.append(
+                f"{tr(self.settings.language, 'learning_example_translation_prefix')}: {self._current_card.example_translation}"
+            )
+        self.quote_label.setText("\n".join(lines))
+        self._update_learning_block_height()
+
+    def _reload_custom_cards(self) -> None:
+        self._custom_cards = []
+        self._current_card = None
+        self._custom_json_error_keys = []
+        paths = self.settings.learning_json_paths
+        if not paths:
+            return
+        for path in paths:
+            try:
+                self._custom_cards.extend(load_learning_cards(path))
+            except FileNotFoundError:
+                self._custom_json_error_keys.append("learning_json_unavailable")
+            except (OSError, ValueError, LearningContentError):
+                self._custom_json_error_keys.append("learning_json_invalid")
+
+    def pop_learning_json_error(self) -> str | None:
+        if self._custom_json_error_shown or not self._custom_json_error_keys:
+            return None
+        self._custom_json_error_shown = True
+        unique_keys: list[str] = []
+        for key in self._custom_json_error_keys:
+            if key not in unique_keys:
+                unique_keys.append(key)
+        return "\n".join(tr(self.settings.language, key) for key in unique_keys)
 
     def _on_quote_click(self) -> None:
         self._last_learning_slot = None
@@ -434,6 +528,19 @@ def _parse_points(raw: str) -> list[int]:
             values.append(value)
     values = sorted(set(values))
     return values
+
+
+def _parse_learning_paths(raw: str) -> list[str]:
+    paths: list[str] = []
+    for chunk in raw.replace(";", "\n").splitlines():
+        path = chunk.strip()
+        if path and path not in paths:
+            paths.append(path)
+    return paths
+
+
+def _format_learning_paths(paths: list[str]) -> str:
+    return "; ".join(paths)
 
 
 def _format_duration(seconds: int) -> str:

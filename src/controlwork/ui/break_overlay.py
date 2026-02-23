@@ -31,7 +31,7 @@ class BreakOverlay(QWidget):
         )
         self.setWindowState(Qt.WindowFullScreen)
         self.setStyleSheet(
-            "background-color: rgba(20, 20, 20, 240); color: white; font-size: 22px;"
+            "background-color: rgb(20, 20, 20); color: white; font-size: 22px;"
         )
 
         root = QVBoxLayout()
@@ -41,6 +41,9 @@ class BreakOverlay(QWidget):
         self.title = QLabel()
         self.countdown = QLabel()
         self.idle_info = QLabel()
+        self.title.setWordWrap(True)
+        self.title.setAlignment(Qt.AlignCenter)
+        self.title.setMaximumWidth(1100)
 
         btn_row = QHBoxLayout()
         self.start_btn = QPushButton()

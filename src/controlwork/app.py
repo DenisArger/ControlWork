@@ -206,6 +206,9 @@ class ControlWorkApplication:
         self.main_window.set_settings(settings)
         self.main_window.retranslate()
         self.main_window.refresh_learning_block(force=True)
+        learning_json_error = self.main_window.pop_learning_json_error()
+        if learning_json_error is not None:
+            QMessageBox.warning(self.main_window, "ControlWork", learning_json_error)
         self.break_overlay.set_language(settings.language, settings.reminder_tone)
         self._retranslate_tray()
 

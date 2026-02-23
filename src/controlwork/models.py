@@ -27,6 +27,8 @@ class AppSettings:
     soft_points_min: list[int] = field(default_factory=lambda: [15, 30, 45])
     hard_points_min: list[int] = field(default_factory=lambda: [50])
     workday_reset_time: str = "04:00"
+    learning_json_path: str = ""
+    learning_json_paths: list[str] = field(default_factory=list)
 
     def normalize(self) -> "AppSettings":
         self.language = "en" if self.language == "en" else "ru"
@@ -36,6 +38,18 @@ class AppSettings:
             self.reminder_tone = "friendly"
         self.soft_points_min = _normalize_points(self.soft_points_min)
         self.hard_points_min = _normalize_points(self.hard_points_min)
+        normalized_paths: list[str] = []
+        for path in self.learning_json_paths or []:
+            text = str(path).strip()
+            if text and text not in normalized_paths:
+                normalized_paths.append(text)
+
+        legacy_path = str(self.learning_json_path or "").strip()
+        if not normalized_paths and legacy_path:
+            normalized_paths.append(legacy_path)
+
+        self.learning_json_paths = normalized_paths
+        self.learning_json_path = normalized_paths[0] if normalized_paths else ""
         parts = self.workday_reset_time.split(":")
         if len(parts) != 2:
             self.workday_reset_time = "04:00"
