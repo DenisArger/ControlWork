@@ -45,6 +45,7 @@ class ControlWorkApplication:
         self.break_overlay.start_break.connect(self._on_break_start)
         self.break_overlay.snooze.connect(self._on_hard_snooze)
         self.break_overlay.skip.connect(self._on_hard_skip)
+        self.break_overlay.continue_work.connect(self._on_break_continue)
 
         self.reminder = ReminderController(self.settings.soft_points_min, self.settings.hard_points_min)
         self.tracker = TrackerService(
@@ -63,20 +64,21 @@ class ControlWorkApplication:
             self._build_tray_menu()
             self.tray_icon.activated.connect(self._on_tray_activated)
             self.tray_icon.show()
-        self.main_window.set_hide_to_tray_enabled(False)
+        self.main_window.set_hide_to_tray_enabled(self.tray_icon is not None)
 
         self.timer = QTimer()
         self.timer.setInterval(1000)
         self.timer.timeout.connect(self._on_tick)
         self.timer.start()
 
-        self.main_window.show()
         self.main_window.update_state(self.tracker.state)
         self.main_window.update_timers(
             self.tracker.get_cycle_active_seconds(),
             self.tracker.get_seconds_to_next_break(),
         )
-        self.main_window.show_status_tab()
+        if self.tray_icon is None:
+            self.main_window.show()
+            self.main_window.show_status_tab()
 
     def _build_tray_menu(self) -> None:
         if self.tray_icon is None:
@@ -183,6 +185,17 @@ class ControlWorkApplication:
             tr(self.settings.language, "limit_skip"),
             critical=True,
         )
+
+    def _on_break_continue(self) -> None:
+        if not self.tracker.finish_break_early():
+            return
+        self.break_overlay.hide()
+        self.main_window.update_state(self.tracker.state)
+        self.main_window.update_timers(
+            self.tracker.get_cycle_active_seconds(),
+            self.tracker.get_seconds_to_next_break(),
+        )
+        self.notification.notify(self._reminder_text("hard_title"), tr(self.settings.language, "break_shortened"))
 
     def _on_save_settings(self, settings: AppSettings) -> None:
         self.settings = settings

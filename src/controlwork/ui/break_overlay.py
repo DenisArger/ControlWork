@@ -16,6 +16,7 @@ class BreakOverlay(QWidget):
     start_break = Signal()
     snooze = Signal()
     skip = Signal()
+    continue_work = Signal()
 
     def __init__(self, language: str, reminder_tone: str = "friendly") -> None:
         super().__init__()
@@ -47,7 +48,7 @@ class BreakOverlay(QWidget):
         self.skip_btn = QPushButton()
         self.start_btn.clicked.connect(self.start_break.emit)
         self.snooze_btn.clicked.connect(self.snooze.emit)
-        self.skip_btn.clicked.connect(self.skip.emit)
+        self.skip_btn.clicked.connect(self._on_third_button_click)
 
         btn_row.addWidget(self.start_btn)
         btn_row.addWidget(self.snooze_btn)
@@ -65,7 +66,9 @@ class BreakOverlay(QWidget):
         self.title.setText(tr(self.language, "overlay_prompt", _tone=self.reminder_tone))
         self.start_btn.setText(tr(self.language, "overlay_start"))
         self.snooze_btn.setText(tr(self.language, "overlay_snooze"))
-        self.skip_btn.setText(tr(self.language, "overlay_skip"))
+        self.skip_btn.setText(
+            tr(self.language, "overlay_continue") if self._is_break_mode else tr(self.language, "overlay_skip")
+        )
         if not self._is_break_mode:
             self.countdown.setText("")
             self.idle_info.setText("")
@@ -81,6 +84,9 @@ class BreakOverlay(QWidget):
         self.title.setText(tr(self.language, "overlay_prompt", _tone=self.reminder_tone))
         self.countdown.setText("")
         self.idle_info.setText("")
+        self.start_btn.setVisible(True)
+        self.snooze_btn.setVisible(True)
+        self.skip_btn.setText(tr(self.language, "overlay_skip"))
         self.start_btn.setEnabled(True)
         self.snooze_btn.setEnabled(True)
         self.skip_btn.setEnabled(can_skip)
@@ -88,11 +94,20 @@ class BreakOverlay(QWidget):
 
     def set_break_mode(self, remaining_sec: int, idle_streak_sec: int) -> None:
         self._is_break_mode = True
+        self.start_btn.setVisible(False)
+        self.snooze_btn.setVisible(False)
+        self.skip_btn.setText(tr(self.language, "overlay_continue"))
         self.start_btn.setEnabled(False)
         self.snooze_btn.setEnabled(False)
-        self.skip_btn.setEnabled(False)
+        self.skip_btn.setEnabled(True)
         self.update_break_metrics(remaining_sec, idle_streak_sec)
 
     def update_break_metrics(self, remaining_sec: int, idle_streak_sec: int) -> None:
         self.countdown.setText(tr(self.language, "overlay_remaining", seconds=remaining_sec))
         self.idle_info.setText(tr(self.language, "overlay_idle", seconds=idle_streak_sec))
+
+    def _on_third_button_click(self) -> None:
+        if self._is_break_mode:
+            self.continue_work.emit()
+            return
+        self.skip.emit()

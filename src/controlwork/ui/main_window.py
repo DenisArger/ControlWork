@@ -242,6 +242,7 @@ class MainWindow(QMainWindow):
         self._last_work_seconds = 0
         self._last_until_break_seconds: int | None = None
         self.setWindowFlag(Qt.WindowStaysOnTopHint, True)
+        self.setWindowFlag(Qt.Tool, True)
         self.setFixedSize(*self._size_with_learning_block)
 
         body = QWidget()

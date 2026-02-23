@@ -107,6 +107,12 @@ class TrackerService:
         self.break_max_idle_streak_sec = 0
         self.break_event_id = self.database.start_break_event(self.clock.now())
 
+    def finish_break_early(self) -> bool:
+        if self.state != TrackerState.BREAK:
+            return False
+        self._complete_break(completed=False)
+        return True
+
     def tick(self) -> TickOutcome:
         now = self.clock.now()
         self._roll_day_if_needed(now)
@@ -127,7 +133,7 @@ class TrackerService:
             outcome.break_remaining_sec = remaining
             outcome.break_idle_streak_sec = self.break_max_idle_streak_sec
             if remaining <= 0:
-                self._complete_break()
+                self._complete_break(completed=True)
                 outcome.break_completed = True
                 outcome.state = self.state
             self._flush_session_totals()
@@ -184,14 +190,14 @@ class TrackerService:
         if self.break_event_id is not None:
             self.database.update_break_event(self.break_event_id, self.break_max_idle_streak_sec)
 
-    def _complete_break(self) -> None:
+    def _complete_break(self, completed: bool) -> None:
         self.state = TrackerState.ACTIVE
         self.cycle_active_sec = 0
         self.snooze_hour_bucket = 0
         self.snooze_count_in_bucket = 0
         self.reminder.reset_cycle()
         if self.break_event_id is not None:
-            self.database.close_break_event(self.break_event_id, self.clock.now(), completed=True)
+            self.database.close_break_event(self.break_event_id, self.clock.now(), completed=completed)
             self.break_event_id = None
 
     def _roll_day_if_needed(self, now: datetime) -> None:

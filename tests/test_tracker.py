@@ -83,6 +83,19 @@ def test_break_completes_by_timer_even_without_idle_streak(tmp_path: Path) -> No
     db.close()
 
 
+def test_break_can_be_finished_early(tmp_path: Path) -> None:
+    tracker, clock, db = make_tracker(tmp_path, [0] * 20, break_minutes=2)
+    tracker.cycle_active_sec = 25 * 60
+    tracker.enter_break()
+
+    assert tracker.state == TrackerState.BREAK
+    assert tracker.finish_break_early() is True
+    assert tracker.state == TrackerState.ACTIVE
+    assert tracker.cycle_active_sec == 0
+    assert tracker.break_event_id is None
+    db.close()
+
+
 def test_snooze_limit_per_work_hour(tmp_path: Path) -> None:
     tracker, clock, db = make_tracker(tmp_path, [0] * 100)
 
