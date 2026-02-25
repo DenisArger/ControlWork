@@ -1,4 +1,5 @@
 # ControlWork
+[![CI](https://github.com/DenisArger/ControlWork/actions/workflows/ci.yml/badge.svg)](https://github.com/DenisArger/ControlWork/actions/workflows/ci.yml)
 
 ## English
 ## Problem
