@@ -69,3 +69,41 @@ def test_learning_rotation_uses_valid_cards_when_one_file_is_broken(tmp_path, mo
 
     assert "Custom English: consistent" in window.quote_label.text()
     assert window.pop_learning_json_error() is not None
+
+
+def test_select_with_recent_ids_avoids_last_five(monkeypatch) -> None:
+    _app()
+    window = MainWindow(AppSettings(language="en").normalize())
+    window._recent_history = {"quotes": ["a", "b", "c", "d", "e"], "verbs": [], "cards": []}
+    monkeypatch.setattr("controlwork.ui.main_window.random.choice", lambda items: items[0])
+    selected = window._select_with_recent_ids(["a", "b", "c", "d", "e", "f"], lambda x: x, "quotes")
+    assert selected == "f"
+    assert window.settings.learning_recent_history["quotes"][-1] == "f"
+
+
+def test_select_with_recent_ids_fallback_to_not_last_when_pool_small(monkeypatch) -> None:
+    _app()
+    window = MainWindow(AppSettings(language="en").normalize())
+    window._recent_history = {"quotes": ["a", "b", "c"], "verbs": [], "cards": []}
+    monkeypatch.setattr("controlwork.ui.main_window.random.choice", lambda items: items[0])
+    selected = window._select_with_recent_ids(["a", "b", "c"], lambda x: x, "quotes")
+    assert selected in ("a", "b")
+    assert selected != "c"
+
+
+def test_select_with_recent_ids_uses_full_pool_when_only_last_exists(monkeypatch) -> None:
+    _app()
+    window = MainWindow(AppSettings(language="en").normalize())
+    window._recent_history = {"quotes": ["solo"], "verbs": [], "cards": []}
+    monkeypatch.setattr("controlwork.ui.main_window.random.choice", lambda items: items[0])
+    selected = window._select_with_recent_ids(["solo"], lambda x: x, "quotes")
+    assert selected == "solo"
+
+
+def test_recent_history_from_settings_influences_next_choice(monkeypatch) -> None:
+    _app()
+    window = MainWindow(AppSettings(language="en").normalize())
+    window._recent_history = {"quotes": ["a", "b", "c", "d", "e"], "verbs": [], "cards": []}
+    monkeypatch.setattr("controlwork.ui.main_window.random.choice", lambda items: items[0])
+    selected = window._select_with_recent_ids(["a", "b", "c", "d", "e", "f"], lambda x: x, "quotes")
+    assert selected == "f"

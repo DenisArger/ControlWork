@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import random
 import time
 from dataclasses import replace
+from typing import Callable, TypeVar
 
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QFontMetrics
@@ -23,15 +25,17 @@ from PySide6.QtWidgets import (
 )
 
 from ..i18n import (
+    IRREGULAR_VERBS,
+    THEMED_QUOTES,
     IrregularVerb,
     ThemedQuote,
     format_thematic_quote_author,
-    random_irregular_verb,
-    random_thematic_quote,
     tr,
 )
 from ..models import AppSettings, REMINDER_TONES, TrackerState
 from ..services.learning_content import LearningCard, LearningContentError, load_learning_cards
+
+_T = TypeVar("_T")
 
 
 class ClickableLabel(QLabel):
@@ -272,6 +276,7 @@ class MainWindow(QMainWindow):
         self._current_card: LearningCard | None = None
         self._custom_json_error_keys: list[str] = []
         self._custom_json_error_shown = False
+        self._recent_history = self._normalized_recent_history(settings.learning_recent_history)
         self._last_work_seconds = 0
         self._last_until_break_seconds: int | None = None
         self.setWindowFlag(Qt.WindowStaysOnTopHint, True)
@@ -337,6 +342,7 @@ class MainWindow(QMainWindow):
     def set_settings(self, settings: AppSettings) -> None:
         self.settings = settings
         self._custom_json_error_shown = False
+        self._recent_history = self._normalized_recent_history(settings.learning_recent_history)
         self._reload_custom_cards()
 
     def set_hide_to_tray_enabled(self, enabled: bool) -> None:
@@ -415,36 +421,49 @@ class MainWindow(QMainWindow):
         self._render_quote()
 
     def _render_quote(self) -> None:
-        self._current_quote = random_thematic_quote(self.settings.language, self._current_quote)
-        topic = tr(self.settings.language, f"quote_topic_{self._current_quote.topic}")
-        author = format_thematic_quote_author(self._current_quote)
-        self.quote_label.setText(f"{topic}: «{self._current_quote.text}»\n- {author}")
+        lang_key = "en" if self.settings.language == "en" else "ru"
+        pool = [quote for topic_quotes in THEMED_QUOTES[lang_key].values() for quote in topic_quotes]
+        quote = self._select_with_recent_ids(
+            pool,
+            item_id_fn=lambda item: f"{item.topic}|{item.author}|{item.text}",
+            history_key="quotes",
+        )
+        self._current_quote = quote
+        topic = tr(self.settings.language, f"quote_topic_{quote.topic}")
+        author = format_thematic_quote_author(quote)
+        self.quote_label.setText(f"{topic}: «{quote.text}»\n- {author}")
         self._update_learning_block_height()
 
     def _render_irregular_verb(self) -> None:
-        self._current_verb = random_irregular_verb(self.settings.language, self._current_verb)
+        lang_key = "en" if self.settings.language == "en" else "ru"
+        verb = self._select_with_recent_ids(
+            IRREGULAR_VERBS[lang_key],
+            item_id_fn=lambda item: f"{item.base}|{item.past}|{item.past_participle}",
+            history_key="verbs",
+        )
+        self._current_verb = verb
         verb_topic = tr(self.settings.language, "quote_topic_irregular")
         self.quote_label.setText(
-            f"{verb_topic}: {self._current_verb.base} - {self._current_verb.past} - {self._current_verb.past_participle}\n"
-            f"{self._current_verb.translation}"
+            f"{verb_topic}: {verb.base} - {verb.past} - {verb.past_participle}\n"
+            f"{verb.translation}"
         )
         self._update_learning_block_height()
 
     def _render_custom_card(self) -> None:
-        pool = self._custom_cards
-        if self._current_card is not None and len(pool) > 1:
-            filtered = [card for card in pool if card != self._current_card]
-            if filtered:
-                pool = filtered
-        self._current_card = pool[int(time.time()) % len(pool)]
+        card = self._select_with_recent_ids(
+            self._custom_cards,
+            item_id_fn=lambda item: f"{item.english}|{item.russian}|{item.example or ''}|{item.example_translation or ''}",
+            history_key="cards",
+        )
+        self._current_card = card
         topic = tr(self.settings.language, "quote_topic_custom_json")
 
-        lines = [f"{topic}: {self._current_card.english}", self._current_card.russian]
-        if self._current_card.example:
-            lines.append(f"{tr(self.settings.language, 'learning_example_prefix')}: {self._current_card.example}")
-        if self._current_card.example_translation:
+        lines = [f"{topic}: {card.english}", card.russian]
+        if card.example:
+            lines.append(f"{tr(self.settings.language, 'learning_example_prefix')}: {card.example}")
+        if card.example_translation:
             lines.append(
-                f"{tr(self.settings.language, 'learning_example_translation_prefix')}: {self._current_card.example_translation}"
+                f"{tr(self.settings.language, 'learning_example_translation_prefix')}: {card.example_translation}"
             )
         self.quote_label.setText("\n".join(lines))
         self._update_learning_block_height()
@@ -473,6 +492,55 @@ class MainWindow(QMainWindow):
             if key not in unique_keys:
                 unique_keys.append(key)
         return "\n".join(tr(self.settings.language, key) for key in unique_keys)
+
+    def _normalized_recent_history(self, payload: object) -> dict[str, list[str]]:
+        normalized: dict[str, list[str]] = {"quotes": [], "verbs": [], "cards": []}
+        if not isinstance(payload, dict):
+            return normalized
+        for key in normalized:
+            raw_values = payload.get(key, [])
+            if not isinstance(raw_values, list):
+                continue
+            values: list[str] = []
+            for raw in raw_values:
+                text = str(raw).strip()
+                if not text or text in values:
+                    continue
+                values.append(text)
+            normalized[key] = values[-5:]
+        return normalized
+
+    def _sync_recent_history_to_settings(self) -> None:
+        self.settings.learning_recent_history = self._normalized_recent_history(self._recent_history)
+
+    def _select_with_recent_ids(
+        self,
+        pool: list[_T],
+        item_id_fn: Callable[[_T], str],
+        history_key: str,
+        recent_window: int = 5,
+    ) -> _T:
+        if not pool:
+            raise ValueError("pool must not be empty")
+
+        history = self._recent_history.setdefault(history_key, [])
+        recent = history[-recent_window:]
+        candidates = [item for item in pool if item_id_fn(item) not in recent]
+
+        if not candidates and history:
+            last_id = history[-1]
+            candidates = [item for item in pool if item_id_fn(item) != last_id]
+
+        if not candidates:
+            candidates = pool
+
+        selected = random.choice(candidates)
+        selected_id = item_id_fn(selected)
+        updated = [item_id for item_id in history if item_id != selected_id]
+        updated.append(selected_id)
+        self._recent_history[history_key] = updated[-recent_window:]
+        self._sync_recent_history_to_settings()
+        return selected
 
     def _on_quote_click(self) -> None:
         self._last_learning_slot = None

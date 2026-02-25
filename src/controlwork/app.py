@@ -76,9 +76,8 @@ class ControlWorkApplication:
             self.tracker.get_cycle_active_seconds(),
             self.tracker.get_seconds_to_next_break(),
         )
-        if self.tray_icon is None:
-            self.main_window.show()
-            self.main_window.show_status_tab()
+        self.main_window.show()
+        self.main_window.show_status_tab()
 
     def _build_tray_menu(self) -> None:
         if self.tray_icon is None:
@@ -230,6 +229,7 @@ class ControlWorkApplication:
             return
         self._shutdown_done = True
         self.timer.stop()
+        self.settings_service.save(self.settings)
         self.tracker.stop_session()
         self.database.close()
         if self.tray_icon is not None:

@@ -29,6 +29,7 @@ class AppSettings:
     workday_reset_time: str = "04:00"
     learning_json_path: str = ""
     learning_json_paths: list[str] = field(default_factory=list)
+    learning_recent_history: dict[str, list[str]] = field(default_factory=dict)
 
     def normalize(self) -> "AppSettings":
         self.language = "en" if self.language == "en" else "ru"
@@ -50,6 +51,7 @@ class AppSettings:
 
         self.learning_json_paths = normalized_paths
         self.learning_json_path = normalized_paths[0] if normalized_paths else ""
+        self.learning_recent_history = _normalize_learning_recent_history(self.learning_recent_history)
         parts = self.workday_reset_time.split(":")
         if len(parts) != 2:
             self.workday_reset_time = "04:00"
@@ -73,12 +75,32 @@ class TickOutcome:
     reminders: list[ReminderEvent] = field(default_factory=list)
     break_remaining_sec: int | None = None
     break_idle_streak_sec: int = 0
+    break_idle_max_streak_sec: int = 0
     break_completed: bool = False
 
 
 def _normalize_points(values: list[int]) -> list[int]:
     normalized = sorted({int(v) for v in values if int(v) > 0})
     return normalized or [15]
+
+
+def _normalize_learning_recent_history(payload: object) -> dict[str, list[str]]:
+    allowed_keys = ("quotes", "verbs", "cards")
+    result: dict[str, list[str]] = {}
+    source = payload if isinstance(payload, dict) else {}
+    for key in allowed_keys:
+        raw_values = source.get(key, [])
+        if not isinstance(raw_values, list):
+            result[key] = []
+            continue
+        values: list[str] = []
+        for raw in raw_values:
+            text = str(raw).strip()
+            if not text or text in values:
+                continue
+            values.append(text)
+        result[key] = values[-5:]
+    return result
 
 
 REMINDER_TONES = (
