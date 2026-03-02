@@ -2,16 +2,18 @@ from __future__ import annotations
 
 import random
 import time
+from html import escape
 from dataclasses import replace
 from typing import Callable, TypeVar
 
 from PySide6.QtCore import Qt, Signal
-from PySide6.QtGui import QFontMetrics
+from PySide6.QtGui import QGuiApplication
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
     QDialog,
     QFileDialog,
+    QFrame,
     QFormLayout,
     QHBoxLayout,
     QLabel,
@@ -19,6 +21,8 @@ from PySide6.QtWidgets import (
     QMainWindow,
     QMessageBox,
     QPushButton,
+    QScrollArea,
+    QSizePolicy,
     QSpinBox,
     QVBoxLayout,
     QWidget,
@@ -262,10 +266,10 @@ class MainWindow(QMainWindow):
 
     def __init__(self, settings: AppSettings) -> None:
         super().__init__()
-        self._size_with_learning_block = (248, 182)
-        self._size_without_learning_block = (210, 120)
-        self._min_height_with_learning_block = 170
-        self._max_height_with_learning_block = 260
+        self._size_with_learning_block = (340, 470)
+        self._size_without_learning_block = (340, 280)
+        self._fixed_learning_scroll_height = 220
+        self._current_state = TrackerState.ACTIVE
         self.settings = settings
         self._hide_to_tray_enabled = True
         self._learning_block_visible = True
@@ -279,60 +283,95 @@ class MainWindow(QMainWindow):
         self._recent_history = self._normalized_recent_history(settings.learning_recent_history)
         self._last_work_seconds = 0
         self._last_until_break_seconds: int | None = None
+        self.setWindowFlag(Qt.Window, True)
         self.setWindowFlag(Qt.WindowStaysOnTopHint, True)
-        self.setWindowFlag(Qt.Tool, True)
         self.setFixedSize(*self._size_with_learning_block)
 
         body = QWidget()
+        body.setObjectName("mainRoot")
         layout = QVBoxLayout()
-        layout.setContentsMargins(5, 5, 5, 5)
-        layout.setSpacing(2)
+        layout.setContentsMargins(16, 16, 16, 16)
+        layout.setSpacing(10)
 
-        timers_layout = QVBoxLayout()
-        timers_layout.setContentsMargins(0, 0, 0, 0)
-        timers_layout.setSpacing(0)
+        self.state_title_label = QLabel()
+        self.state_badge_label = QLabel()
+        state_row = QHBoxLayout()
+        state_row.setContentsMargins(0, 0, 0, 0)
+        state_row.setSpacing(8)
+        state_row.addWidget(self.state_title_label)
+        state_row.addStretch(1)
+        state_row.addWidget(self.state_badge_label)
 
-        self.state_label = QLabel()
+        self.timer_card = QFrame()
+        self.timer_card.setObjectName("timerCard")
+        self.timer_card.setMinimumHeight(80)
+        timer_layout = QVBoxLayout()
+        timer_layout.setContentsMargins(12, 8, 12, 8)
+        timer_layout.setSpacing(0)
+        self.work_time_title_label = QLabel()
+        self.work_time_title_label.setObjectName("secondaryText")
         self.work_time_label = QLabel()
+        self.work_time_label.setObjectName("workTimeValue")
+        self.work_time_label.setMinimumHeight(32)
         self.until_break_label = QLabel()
+        self.until_break_label.setObjectName("secondaryText")
+        timer_layout.addWidget(self.work_time_title_label)
+        timer_layout.addWidget(self.work_time_label)
+        timer_layout.addWidget(self.until_break_label)
+        self.timer_card.setLayout(timer_layout)
+
         self.toggle_learning_btn = QPushButton()
         self.quote_label = ClickableLabel()
+        self.learning_title_label = QLabel()
+        self.learning_card = QFrame()
+        self.learning_card.setObjectName("learningCard")
+        self.learning_scroll = QScrollArea()
         self.pause_btn = QPushButton()
-        self.toggle_learning_btn.setFixedHeight(19)
-        self.pause_btn.setFixedHeight(21)
+        self.toggle_learning_btn.setObjectName("secondaryButton")
+        self.pause_btn.setObjectName("primaryButton")
+        self.state_badge_label.setObjectName("stateBadge")
+        self.state_title_label.setObjectName("sectionTitle")
+        self.learning_title_label.setObjectName("sectionTitle")
+        self.pause_btn.setFixedHeight(36)
+        self.toggle_learning_btn.setFixedHeight(36)
         self.pause_btn.clicked.connect(self.pause_toggle_requested.emit)
         self.toggle_learning_btn.clicked.connect(self._toggle_learning_block)
         self.quote_label.clicked.connect(self._on_quote_click)
         self.quote_label.setWordWrap(True)
         self.quote_label.setCursor(Qt.PointingHandCursor)
+        self.quote_label.setAlignment(Qt.AlignTop | Qt.AlignLeft)
+        self.quote_label.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Minimum)
+        self.quote_label.setTextFormat(Qt.RichText)
+        self.learning_scroll.setWidgetResizable(True)
+        self.learning_scroll.setFrameShape(QFrame.NoFrame)
+        self.learning_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.learning_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        self.learning_scroll.setFixedHeight(self._fixed_learning_scroll_height)
+        self.learning_content = QWidget()
+        learning_content_layout = QVBoxLayout()
+        learning_content_layout.setContentsMargins(0, 0, 4, 0)
+        learning_content_layout.setSpacing(0)
+        learning_content_layout.addWidget(self.quote_label)
+        learning_content_layout.setAlignment(self.quote_label, Qt.AlignTop)
+        self.learning_content.setLayout(learning_content_layout)
+        self.learning_scroll.setWidget(self.learning_content)
+        learning_layout = QVBoxLayout()
+        learning_layout.setContentsMargins(10, 8, 10, 8)
+        learning_layout.setSpacing(0)
+        learning_layout.addWidget(self.learning_scroll)
+        self.learning_card.setLayout(learning_layout)
 
-        self.state_label.setStyleSheet("font-size: 12px; font-weight: 600;")
-        self.work_time_label.setStyleSheet("font-size: 12px;")
-        self.until_break_label.setStyleSheet("font-size: 12px;")
-        self.quote_label.setStyleSheet(
-            "font-size: 11px; color: #243447; background: #eef3f7; border: 1px solid #d0d8e0; border-radius: 5px; padding: 4px;"
-        )
-        self.toggle_learning_btn.setStyleSheet(
-            "font-size: 11px; border: 1px solid #b7c3cf; border-radius: 5px; padding: 0px 6px;"
-        )
-        self.pause_btn.setStyleSheet(
-            "font-size: 12px; border: 1px solid #9aa7b6; border-radius: 6px; padding: 1px 8px;"
-        )
-
-        self.state_label.setMargin(0)
-        self.work_time_label.setMargin(0)
-        self.until_break_label.setMargin(0)
-
-        layout.addWidget(self.state_label)
-        timers_layout.addWidget(self.work_time_label)
-        timers_layout.addWidget(self.until_break_label)
-        layout.addLayout(timers_layout)
+        layout.addLayout(state_row)
+        layout.addWidget(self.timer_card)
         layout.addWidget(self.toggle_learning_btn)
-        layout.addWidget(self.quote_label)
+        layout.addWidget(self.learning_title_label)
+        layout.addWidget(self.learning_card)
         layout.addWidget(self.pause_btn)
+        layout.addStretch(1)
 
         body.setLayout(layout)
         self.setCentralWidget(body)
+        self._apply_styles()
 
         self.retranslate()
         self._reload_custom_cards()
@@ -351,14 +390,19 @@ class MainWindow(QMainWindow):
     def retranslate(self) -> None:
         lang = self.settings.language
         self.setWindowTitle(tr(lang, "app_title"))
+        self.state_title_label.setText(f"{tr(lang, 'status_title')}:")
+        self.learning_title_label.setText(tr(lang, "learning_block_title"))
+        self.work_time_title_label.setText(tr(lang, "status_work_time"))
         self.pause_btn.setText(tr(lang, "menu_pause"))
         self.toggle_learning_btn.setText(
             tr(lang, "btn_hide_quotes") if self._learning_block_visible else tr(lang, "btn_show_quotes")
         )
+        self.update_state(self._current_state)
         self.update_timers(self._last_work_seconds, self._last_until_break_seconds)
         self.refresh_learning_block(force=True)
 
     def update_state(self, state: TrackerState) -> None:
+        self._current_state = state
         key_map = {
             TrackerState.ACTIVE: "state_active",
             TrackerState.IDLE: "state_idle",
@@ -366,7 +410,8 @@ class MainWindow(QMainWindow):
             TrackerState.PAUSED: "state_paused",
         }
         state_text = tr(self.settings.language, key_map[state])
-        self.state_label.setText(f"{tr(self.settings.language, 'status_title')}: {state_text}")
+        self.state_badge_label.setText(state_text)
+        self._apply_status_badge_style(state)
         self.pause_btn.setText(
             tr(self.settings.language, "menu_resume")
             if state == TrackerState.PAUSED
@@ -378,9 +423,7 @@ class MainWindow(QMainWindow):
         self._last_until_break_seconds = None if until_break_seconds is None else max(0, int(until_break_seconds))
 
         lang = self.settings.language
-        self.work_time_label.setText(
-            f"{tr(lang, 'status_work_time')}: {_format_duration(self._last_work_seconds)}"
-        )
+        self.work_time_label.setText(_format_duration(self._last_work_seconds))
         if self._last_until_break_seconds is None:
             until_text = tr(lang, "status_no_break")
         else:
@@ -397,7 +440,14 @@ class MainWindow(QMainWindow):
         self.activateWindow()
 
     def _move_to_anchor(self) -> None:
-        self.move(20, 60)
+        screen = QGuiApplication.primaryScreen()
+        if screen is None:
+            self.move(20, 60)
+            return
+        geometry = screen.availableGeometry()
+        x = geometry.x() + max(0, (geometry.width() - self.width()) // 2)
+        y = geometry.y() + max(0, (geometry.height() - self.height()) // 4)
+        self.move(x, y)
 
     def refresh_learning_block(self, force: bool = False) -> None:
         slot = int(time.time() // 30)
@@ -431,8 +481,15 @@ class MainWindow(QMainWindow):
         self._current_quote = quote
         topic = tr(self.settings.language, f"quote_topic_{quote.topic}")
         author = format_thematic_quote_author(quote)
-        self.quote_label.setText(f"{topic}: «{quote.text}»\n- {author}")
-        self._update_learning_block_height()
+        self.quote_label.setText(
+            self._format_learning_html(
+                [
+                    ("label", topic),
+                    ("quote", f"«{quote.text}»"),
+                    ("meta", f"- {author}"),
+                ]
+            )
+        )
 
     def _render_irregular_verb(self) -> None:
         lang_key = "en" if self.settings.language == "en" else "ru"
@@ -444,29 +501,38 @@ class MainWindow(QMainWindow):
         self._current_verb = verb
         verb_topic = tr(self.settings.language, "quote_topic_irregular")
         self.quote_label.setText(
-            f"{verb_topic}: {verb.base} - {verb.past} - {verb.past_participle}\n"
-            f"{verb.translation}"
+            self._format_learning_html(
+                [
+                    ("label", verb_topic),
+                    ("text", f"{verb.base} - {verb.past} - {verb.past_participle}"),
+                    ("meta", verb.translation),
+                ]
+            )
         )
-        self._update_learning_block_height()
 
     def _render_custom_card(self) -> None:
         card = self._select_with_recent_ids(
             self._custom_cards,
-            item_id_fn=lambda item: f"{item.english}|{item.russian}|{item.example or ''}|{item.example_translation or ''}",
+            item_id_fn=lambda item: (
+                f"{item.english}|{item.russian}|{item.transcription or ''}|"
+                f"{item.example or ''}|{item.example_translation or ''}"
+            ),
             history_key="cards",
         )
         self._current_card = card
         topic = tr(self.settings.language, "quote_topic_custom_json")
 
-        lines = [f"{topic}: {card.english}", card.russian]
+        rows: list[tuple[str, str]] = [("label", topic), ("text", card.english), ("meta", card.russian)]
+        if card.transcription:
+            rows.append(("label", tr(self.settings.language, "learning_transcription_prefix")))
+            rows.append(("meta", card.transcription))
         if card.example:
-            lines.append(f"{tr(self.settings.language, 'learning_example_prefix')}: {card.example}")
+            rows.append(("label", tr(self.settings.language, "learning_example_prefix")))
+            rows.append(("text", card.example))
         if card.example_translation:
-            lines.append(
-                f"{tr(self.settings.language, 'learning_example_translation_prefix')}: {card.example_translation}"
-            )
-        self.quote_label.setText("\n".join(lines))
-        self._update_learning_block_height()
+            rows.append(("label", tr(self.settings.language, "learning_example_translation_prefix")))
+            rows.append(("meta", card.example_translation))
+        self.quote_label.setText(self._format_learning_html(rows))
 
     def _reload_custom_cards(self) -> None:
         self._custom_cards = []
@@ -552,27 +618,150 @@ class MainWindow(QMainWindow):
         self.retranslate()
 
     def _apply_learning_block_visibility(self) -> None:
-        self.quote_label.setVisible(self._learning_block_visible)
+        self.learning_title_label.setVisible(self._learning_block_visible)
+        self.learning_card.setVisible(self._learning_block_visible)
         if self._learning_block_visible:
-            self.setFixedWidth(self._size_with_learning_block[0])
-            self._update_learning_block_height()
+            self.setFixedSize(*self._size_with_learning_block)
         else:
             self.setFixedSize(*self._size_without_learning_block)
 
-    def _update_learning_block_height(self) -> None:
-        if not self._learning_block_visible:
-            return
+    def _format_learning_html(self, rows: list[tuple[str, str]]) -> str:
+        parts: list[str] = ['<div style="line-height:1.28;">']
+        for kind, value in rows:
+            text = escape(value.strip())
+            if not text:
+                continue
+            if kind == "label":
+                parts.append(f'<div style="font-weight:600;color:#374151;margin-top:1px;">{text}</div>')
+            elif kind == "quote":
+                parts.append(f'<div style="font-style:italic;color:#1F2937;">{text}</div>')
+            elif kind == "meta":
+                parts.append(f'<div style="color:#4B5563;">{text}</div>')
+            else:
+                parts.append(f'<div style="color:#1F2937;">{text}</div>')
+        parts.append("</div>")
+        return "".join(parts)
 
-        base_height_without_quote = self._size_without_learning_block[1]
-        content_width = max(120, self._size_with_learning_block[0] - 20)
-        metrics = QFontMetrics(self.quote_label.font())
-        text_rect = metrics.boundingRect(0, 0, content_width, 2000, Qt.TextWordWrap, self.quote_label.text())
-        quote_height = text_rect.height() + 14
+    def _apply_styles(self) -> None:
+        self.setStyleSheet(
+            """
+            QMainWindow {
+                background-color: #F6F8FB;
+            }
+            QWidget#mainRoot {
+                background-color: #F6F8FB;
+            }
+            QWidget {
+                color: #1F2937;
+                font-family: "Segoe UI";
+                font-size: 14px;
+            }
+            QFrame#timerCard, QFrame#learningCard {
+                background-color: #FFFFFF;
+                border: 1px solid #D5DCE6;
+                border-radius: 10px;
+            }
+            QLabel#sectionTitle {
+                color: #1F2937;
+                font-weight: 600;
+            }
+            QLabel#workTimeValue {
+                font-family: "Consolas";
+                font-size: 24px;
+                font-weight: 700;
+                color: #111827;
+            }
+            QLabel#secondaryText {
+                color: #4B5563;
+                font-size: 13px;
+            }
+            QLabel#stateBadge {
+                border-radius: 999px;
+                padding: 3px 10px;
+                font-size: 13px;
+                font-weight: 600;
+                background-color: #DBEAFE;
+                color: #1E40AF;
+            }
+            QLabel#learningText {
+                color: #1F2937;
+                font-size: 13px;
+                background-color: transparent;
+            }
+            QScrollArea {
+                background-color: transparent;
+                border: none;
+            }
+            QScrollArea > QWidget > QWidget {
+                background-color: transparent;
+            }
+            QPushButton {
+                min-height: 36px;
+                border-radius: 10px;
+                font-size: 14px;
+            }
+            QPushButton#primaryButton {
+                background-color: #2563EB;
+                color: #FFFFFF;
+                border: 1px solid #2563EB;
+                font-weight: 600;
+            }
+            QPushButton#primaryButton:hover {
+                background-color: #1D4ED8;
+                border-color: #1D4ED8;
+            }
+            QPushButton#primaryButton:pressed {
+                background-color: #1E40AF;
+                border-color: #1E40AF;
+            }
+            QPushButton#secondaryButton {
+                background-color: #FFFFFF;
+                color: #1F2937;
+                border: 1px solid #D5DCE6;
+            }
+            QPushButton#secondaryButton:hover {
+                background-color: #F3F6FA;
+            }
+            QPushButton#secondaryButton:pressed {
+                background-color: #E8EEF7;
+            }
+            QPushButton:focus {
+                border: 1px solid #93C5FD;
+            }
+            QScrollBar:vertical {
+                background: transparent;
+                width: 8px;
+                margin: 2px;
+            }
+            QScrollBar::handle:vertical {
+                background: #C7D2E0;
+                border-radius: 4px;
+                min-height: 18px;
+            }
+            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+                height: 0px;
+            }
+            QPushButton:disabled {
+                opacity: 0.5;
+            }
+            """
+        )
+        self.quote_label.setObjectName("learningText")
+        self.quote_label.setContentsMargins(0, 0, 0, 0)
+        self.quote_label.style().unpolish(self.quote_label)
+        self.quote_label.style().polish(self.quote_label)
 
-        target_height = base_height_without_quote + quote_height
-        target_height = max(self._min_height_with_learning_block, target_height)
-        target_height = min(self._max_height_with_learning_block, target_height)
-        self.setFixedHeight(target_height)
+    def _apply_status_badge_style(self, state: TrackerState) -> None:
+        style_map = {
+            TrackerState.ACTIVE: ("#DBEAFE", "#1E40AF"),
+            TrackerState.IDLE: ("#E5E7EB", "#374151"),
+            TrackerState.BREAK: ("#D1FAE5", "#065F46"),
+            TrackerState.PAUSED: ("#FEF3C7", "#92400E"),
+        }
+        bg, fg = style_map[state]
+        self.state_badge_label.setStyleSheet(
+            f"background-color: {bg}; color: {fg}; border-radius: 999px; padding: 3px 10px; font-size: 13px; font-weight: 600;"
+        )
 
     def closeEvent(self, event) -> None:  # type: ignore[override]
         if self._hide_to_tray_enabled:

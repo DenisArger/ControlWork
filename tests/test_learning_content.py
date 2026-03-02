@@ -13,6 +13,7 @@ def test_validate_learning_cards_payload_accepts_valid_cards() -> None:
             {
                 "english": "deal with",
                 "russian": "иметь дело с",
+                "transcription": "di:l wɪð",
                 "example": "I deal with clients daily.",
                 "example_translation": "Я ежедневно работаю с клиентами.",
             },
@@ -22,8 +23,10 @@ def test_validate_learning_cards_payload_accepts_valid_cards() -> None:
     assert len(cards) == 2
     assert cards[0].english == "deal with"
     assert cards[0].russian == "иметь дело с"
+    assert cards[0].transcription == "di:l wɪð"
     assert cards[0].example == "I deal with clients daily."
     assert cards[0].example_translation == "Я ежедневно работаю с клиентами."
+    assert cards[1].transcription is None
     assert cards[1].example is None
     assert cards[1].example_translation is None
 
@@ -42,6 +45,17 @@ def test_validate_learning_cards_payload_supports_example_ru_alias() -> None:
     assert cards[0].example_translation == "Сохраняй фокус."
 
 
+def test_validate_learning_cards_payload_supports_transcription_aliases() -> None:
+    cards = validate_learning_cards_payload(
+        [
+            {"english": "focus", "russian": "фокус", "phonetic": "ˈfəʊkəs"},
+            {"english": "break", "russian": "перерыв", "ipa": "breɪk"},
+        ]
+    )
+    assert cards[0].transcription == "ˈfəʊkəs"
+    assert cards[1].transcription == "breɪk"
+
+
 @pytest.mark.parametrize(
     "payload",
     [
@@ -50,6 +64,7 @@ def test_validate_learning_cards_payload_supports_example_ru_alias() -> None:
         [{"english": "a"}],
         [{"english": "a", "russian": 42}],
         [{"english": "a", "russian": "b", "example": 1}],
+        [{"english": "a", "russian": "b", "transcription": 1}],
         [{"english": "a", "russian": "b", "example_translation": 1}],
     ],
 )

@@ -78,6 +78,7 @@ class ControlWorkApplication:
         )
         self.main_window.show()
         self.main_window.show_status_tab()
+        QTimer.singleShot(150, self.main_window.show_status_tab)
 
     def _build_tray_menu(self) -> None:
         if self.tray_icon is None:

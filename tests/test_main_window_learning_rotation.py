@@ -10,7 +10,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 PySide6_QtWidgets = pytest.importorskip("PySide6.QtWidgets")
 QApplication = PySide6_QtWidgets.QApplication
 
-from controlwork.models import AppSettings
+from controlwork.models import AppSettings, TrackerState
 from controlwork.ui.main_window import MainWindow
 
 
@@ -25,7 +25,10 @@ def test_learning_rotation_uses_custom_json_slot(tmp_path, monkeypatch) -> None:
     _app()
     cards_path = tmp_path / "cards.json"
     cards_path.write_text(
-        json.dumps([{"english": "resilient", "russian": "устойчивый", "example": "Stay resilient."}], ensure_ascii=False),
+        json.dumps(
+            [{"english": "resilient", "russian": "устойчивый", "transcription": "rɪˈzɪliənt", "example": "Stay resilient."}],
+            ensure_ascii=False,
+        ),
         encoding="utf-8",
     )
     window = MainWindow(AppSettings(language="en", learning_json_paths=[str(cards_path)]).normalize())
@@ -34,9 +37,13 @@ def test_learning_rotation_uses_custom_json_slot(tmp_path, monkeypatch) -> None:
     window.refresh_learning_block(force=True)
 
     text = window.quote_label.text()
-    assert "Custom English: resilient" in text
+    assert "Custom English" in text
+    assert "resilient" in text
     assert "устойчивый" in text
-    assert "Example: Stay resilient." in text
+    assert "Transcription" in text
+    assert "rɪˈzɪliənt" in text
+    assert "Example" in text
+    assert "Stay resilient." in text
 
 
 def test_learning_rotation_falls_back_when_custom_json_unavailable(monkeypatch) -> None:
@@ -67,7 +74,9 @@ def test_learning_rotation_uses_valid_cards_when_one_file_is_broken(tmp_path, mo
     monkeypatch.setattr("controlwork.ui.main_window.time.time", lambda: 62)
     window.refresh_learning_block(force=True)
 
-    assert "Custom English: consistent" in window.quote_label.text()
+    rendered = window.quote_label.text()
+    assert "Custom English" in rendered
+    assert "consistent" in rendered
     assert window.pop_learning_json_error() is not None
 
 
@@ -107,3 +116,30 @@ def test_recent_history_from_settings_influences_next_choice(monkeypatch) -> Non
     monkeypatch.setattr("controlwork.ui.main_window.random.choice", lambda items: items[0])
     selected = window._select_with_recent_ids(["a", "b", "c", "d", "e", "f"], lambda x: x, "quotes")
     assert selected == "f"
+
+
+def test_toggle_learning_block_updates_visibility_and_size() -> None:
+    _app()
+    window = MainWindow(AppSettings(language="ru").normalize())
+    assert not window.learning_card.isHidden()
+    assert window.width() == 340
+    assert window.height() == 470
+
+    window._toggle_learning_block()
+    assert window.learning_card.isHidden()
+    assert window.width() == 340
+    assert window.height() == 280
+
+    window._toggle_learning_block()
+    assert not window.learning_card.isHidden()
+    assert window.height() == 470
+
+
+def test_pause_button_text_switches_on_paused_state() -> None:
+    _app()
+    window = MainWindow(AppSettings(language="en").normalize())
+    window.update_state(TrackerState.PAUSED)
+    assert window.pause_btn.text() == "Resume"
+
+    window.update_state(TrackerState.ACTIVE)
+    assert window.pause_btn.text() == "Pause"
