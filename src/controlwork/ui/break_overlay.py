@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
+    QSizePolicy,
     QHBoxLayout,
     QLabel,
     QPushButton,
@@ -31,24 +32,51 @@ class BreakOverlay(QWidget):
         )
         self.setWindowState(Qt.WindowFullScreen)
         self.setStyleSheet(
-            "background-color: rgb(20, 20, 20); color: white; font-size: 22px;"
+            """
+            QWidget {
+                background-color: rgb(20, 20, 20);
+                color: white;
+            }
+            QLabel#overlayTitle {
+                font-size: 22px;
+            }
+            QLabel#overlayMeta {
+                font-size: 36px;
+            }
+            QPushButton {
+                font-size: 34px;
+                min-height: 56px;
+                padding: 0 20px;
+            }
+            """
         )
 
         root = QVBoxLayout()
+        root.setContentsMargins(32, 24, 32, 24)
         root.setAlignment(Qt.AlignCenter)
         root.setSpacing(24)
 
         self.title = QLabel()
         self.countdown = QLabel()
         self.idle_info = QLabel()
+        self.title.setObjectName("overlayTitle")
+        self.countdown.setObjectName("overlayMeta")
+        self.idle_info.setObjectName("overlayMeta")
         self.title.setWordWrap(True)
+        self.title.setTextFormat(Qt.PlainText)
+        self.countdown.setTextFormat(Qt.PlainText)
+        self.idle_info.setTextFormat(Qt.PlainText)
         self.title.setAlignment(Qt.AlignCenter)
         self.title.setMaximumWidth(1100)
 
         btn_row = QHBoxLayout()
+        btn_row.setSpacing(20)
         self.start_btn = QPushButton()
         self.snooze_btn = QPushButton()
         self.skip_btn = QPushButton()
+        self.start_btn.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
+        self.snooze_btn.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
+        self.skip_btn.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
         self.start_btn.clicked.connect(self.start_break.emit)
         self.snooze_btn.clicked.connect(self.snooze.emit)
         self.skip_btn.clicked.connect(self._on_third_button_click)
