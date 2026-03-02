@@ -169,3 +169,27 @@ class Database:
                 (key, json.dumps(value, ensure_ascii=False)),
             )
         self._conn.commit()
+
+    def save_app_cache_value(self, key: str, value: object) -> None:
+        self._conn.execute(
+            """
+            INSERT INTO app_settings(key, value_json)
+            VALUES(?, ?)
+            ON CONFLICT(key)
+            DO UPDATE SET value_json = excluded.value_json
+            """,
+            (key, json.dumps(value, ensure_ascii=False)),
+        )
+        self._conn.commit()
+
+    def load_app_cache_value(self, key: str) -> object | None:
+        row = self._conn.execute(
+            "SELECT value_json FROM app_settings WHERE key = ?",
+            (key,),
+        ).fetchone()
+        if row is None:
+            return None
+        try:
+            return json.loads(row["value_json"])
+        except json.JSONDecodeError:
+            return None

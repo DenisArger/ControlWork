@@ -54,6 +54,32 @@ def make_tracker(tmp_path: Path, idle_sequence: list[int], break_minutes: int = 
     return tracker, clock, db
 
 
+def make_tracker_at(
+    db_path: Path,
+    idle_sequence: list[int],
+    now: datetime,
+    break_minutes: int = 10,
+) -> tuple[TrackerService, FakeClock, Database]:
+    db = Database(db_path)
+    settings = AppSettings(
+        language="en",
+        idle_threshold_sec=120,
+        break_duration_min=break_minutes,
+        soft_points_min=[15, 30, 45],
+        hard_points_min=[50],
+    ).normalize()
+    clock = FakeClock(now)
+    tracker = TrackerService(
+        settings=settings,
+        idle_provider=SequenceIdleProvider(idle_sequence),
+        reminder=ReminderController(settings.soft_points_min, settings.hard_points_min),
+        database=db,
+        clock=clock,
+    )
+    tracker.start_session()
+    return tracker, clock, db
+
+
 def test_active_vs_idle_accounting(tmp_path: Path) -> None:
     tracker, clock, db = make_tracker(tmp_path, [0] * 10 + [200] * 5)
 
@@ -120,3 +146,28 @@ def test_seconds_to_next_break_for_active_cycle(tmp_path: Path) -> None:
     tracker.cycle_active_sec = 49 * 60 + 30
     assert tracker.get_seconds_to_next_break() == 30
     db.close()
+
+
+def test_cycle_timer_restored_after_restart_same_day(tmp_path: Path) -> None:
+    db_path = tmp_path / "test.db"
+    start = datetime(2026, 2, 17, 12, 0, 0)
+    tracker1, _, db1 = make_tracker_at(db_path, [0] * 10, start)
+    tracker1.cycle_active_sec = 25 * 60 + 5
+    tracker1.stop_session()
+    db1.close()
+
+    tracker2, _, db2 = make_tracker_at(db_path, [0] * 10, start + timedelta(minutes=30))
+    assert tracker2.cycle_active_sec == 25 * 60 + 5
+    db2.close()
+
+
+def test_cycle_timer_resets_after_restart_new_day(tmp_path: Path) -> None:
+    db_path = tmp_path / "test.db"
+    tracker1, _, db1 = make_tracker_at(db_path, [0] * 10, datetime(2026, 2, 17, 23, 59, 0))
+    tracker1.cycle_active_sec = 40 * 60
+    tracker1.stop_session()
+    db1.close()
+
+    tracker2, _, db2 = make_tracker_at(db_path, [0] * 10, datetime(2026, 2, 18, 4, 1, 0))
+    assert tracker2.cycle_active_sec == 0
+    db2.close()

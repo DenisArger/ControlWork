@@ -16,6 +16,8 @@ class SystemClock:
 
 
 class TrackerService:
+    _STATE_CACHE_KEY = "runtime_tracker_state_v1"
+
     def __init__(
         self,
         settings: AppSettings,
@@ -50,10 +52,12 @@ class TrackerService:
 
     def start_session(self) -> None:
         now = self.clock.now()
+        self._restore_runtime_state(now)
         self.database.close_open_sessions(now)
         self.session_id = self.database.create_session(now)
         self.skip_count_today = self.database.get_skip_count(*self._day_window(now))
         self.database.save_settings_cache(asdict(self.settings))
+        self._persist_runtime_state()
 
     def stop_session(self) -> None:
         if self.session_id is None:
@@ -64,6 +68,7 @@ class TrackerService:
         self.database.update_session_totals(self.session_id, self.active_sec, self.idle_sec, self.break_sec)
         self.database.close_session(self.session_id, self.clock.now())
         self.session_id = None
+        self._persist_runtime_state()
 
     def apply_settings(self, settings: AppSettings) -> None:
         self.settings = settings
@@ -72,10 +77,12 @@ class TrackerService:
 
     def pause_session(self) -> None:
         self.state = TrackerState.PAUSED
+        self._persist_runtime_state()
 
     def resume_session(self) -> None:
         if self.state == TrackerState.PAUSED:
             self.state = TrackerState.ACTIVE
+            self._persist_runtime_state()
 
     def can_skip_today(self) -> bool:
         return self.skip_count_today < 1
@@ -98,6 +105,7 @@ class TrackerService:
             return False
         self.skip_count_today += 1
         self.database.log_reminder(self.clock.now(), "hard", max(1, self.cycle_active_sec // 60), "skip")
+        self._persist_runtime_state()
         return True
 
     def enter_break(self) -> None:
@@ -106,6 +114,7 @@ class TrackerService:
         self.break_idle_streak_sec = 0
         self.break_max_idle_streak_sec = 0
         self.break_event_id = self.database.start_break_event(self.clock.now())
+        self._persist_runtime_state()
 
     def finish_break_early(self) -> bool:
         if self.state != TrackerState.BREAK:
@@ -200,6 +209,7 @@ class TrackerService:
         if self.break_event_id is not None:
             self.database.close_break_event(self.break_event_id, self.clock.now(), completed=completed)
             self.break_event_id = None
+        self._persist_runtime_state()
 
     def _roll_day_if_needed(self, now: datetime) -> None:
         current = self._day_window(now)[0].isoformat()
@@ -207,6 +217,12 @@ class TrackerService:
             return
         self.current_day_key = current
         self.skip_count_today = self.database.get_skip_count(*self._day_window(now))
+        self.cycle_active_sec = 0
+        self.break_elapsed_sec = 0
+        self.snooze_hour_bucket = 0
+        self.snooze_count_in_bucket = 0
+        self.state = TrackerState.ACTIVE
+        self._persist_runtime_state()
 
     def _flush_session_totals(self) -> None:
         if self.session_id is not None:
@@ -220,3 +236,41 @@ class TrackerService:
         else:
             start = reset_today
         return (start, start + timedelta(days=1))
+
+    def _restore_runtime_state(self, now: datetime) -> None:
+        payload = self.database.load_app_cache_value(self._STATE_CACHE_KEY)
+        if not isinstance(payload, dict):
+            return
+
+        cached_day_key = payload.get("day_key")
+        current_day_key = self._day_window(now)[0].isoformat()
+        if cached_day_key != current_day_key:
+            return
+
+        cycle_active_sec = payload.get("cycle_active_sec")
+        if isinstance(cycle_active_sec, int) and cycle_active_sec >= 0:
+            self.cycle_active_sec = cycle_active_sec
+
+        break_elapsed_sec = payload.get("break_elapsed_sec")
+        if isinstance(break_elapsed_sec, int) and break_elapsed_sec >= 0:
+            self.break_elapsed_sec = break_elapsed_sec
+
+        snooze_hour_bucket = payload.get("snooze_hour_bucket")
+        if isinstance(snooze_hour_bucket, int) and snooze_hour_bucket >= 0:
+            self.snooze_hour_bucket = snooze_hour_bucket
+
+        snooze_count_in_bucket = payload.get("snooze_count_in_bucket")
+        if isinstance(snooze_count_in_bucket, int) and snooze_count_in_bucket >= 0:
+            self.snooze_count_in_bucket = snooze_count_in_bucket
+
+    def _persist_runtime_state(self) -> None:
+        self.database.save_app_cache_value(
+            self._STATE_CACHE_KEY,
+            {
+                "day_key": self.current_day_key,
+                "cycle_active_sec": self.cycle_active_sec,
+                "break_elapsed_sec": self.break_elapsed_sec,
+                "snooze_hour_bucket": self.snooze_hour_bucket,
+                "snooze_count_in_bucket": self.snooze_count_in_bucket,
+            },
+        )
