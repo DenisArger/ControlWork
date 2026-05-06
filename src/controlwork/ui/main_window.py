@@ -81,6 +81,10 @@ class FirstRunDialog(QDialog):
         self.idle_spin.setRange(30, 3600)
         self.idle_spin.setValue(settings.idle_threshold_sec)
 
+        self.idle_reset_spin = QSpinBox()
+        self.idle_reset_spin.setRange(0, 36000)
+        self.idle_reset_spin.setValue(settings.idle_reset_after_sec)
+
         self.autostart_check = QCheckBox()
         self.autostart_check.setChecked(settings.autostart_enabled)
 
@@ -91,6 +95,7 @@ class FirstRunDialog(QDialog):
         form.addRow("break(min)", self.break_spin)
         form.addRow("tone", self.tone_combo)
         form.addRow("idle(sec)", self.idle_spin)
+        form.addRow("idle reset(sec)", self.idle_reset_spin)
         form.addRow("autostart", self.autostart_check)
 
         apply_btn = QPushButton("apply")
@@ -137,6 +142,9 @@ class SettingsDialog(QDialog):
         self.idle_spin = QSpinBox()
         self.idle_spin.setRange(30, 3600)
 
+        self.idle_reset_spin = QSpinBox()
+        self.idle_reset_spin.setRange(0, 36000)
+
         self.break_spin = QSpinBox()
         self.break_spin.setRange(1, 180)
 
@@ -158,6 +166,7 @@ class SettingsDialog(QDialog):
         self.language_label = QLabel()
         self.autostart_label = QLabel()
         self.idle_label = QLabel()
+        self.idle_reset_label = QLabel()
         self.break_label = QLabel()
         self.tone_label = QLabel()
         self.soft_label = QLabel()
@@ -168,6 +177,7 @@ class SettingsDialog(QDialog):
         form.addRow(self.language_label, self.language_combo)
         form.addRow(self.autostart_label, self.autostart_checkbox)
         form.addRow(self.idle_label, self.idle_spin)
+        form.addRow(self.idle_reset_label, self.idle_reset_spin)
         form.addRow(self.break_label, self.break_spin)
         form.addRow(self.tone_label, self.tone_combo)
         form.addRow(self.soft_label, self.soft_edit)
@@ -197,6 +207,7 @@ class SettingsDialog(QDialog):
         self.language_combo.setCurrentText(settings.language)
         self.autostart_checkbox.setChecked(settings.autostart_enabled)
         self.idle_spin.setValue(settings.idle_threshold_sec)
+        self.idle_reset_spin.setValue(settings.idle_reset_after_sec)
         self.break_spin.setValue(settings.break_duration_min)
         tone_idx = self.tone_combo.findData(settings.reminder_tone)
         if tone_idx >= 0:
@@ -212,6 +223,7 @@ class SettingsDialog(QDialog):
         self.language_label.setText(tr(lang, "settings_language"))
         self.autostart_label.setText(tr(lang, "settings_autostart"))
         self.idle_label.setText(tr(lang, "settings_idle"))
+        self.idle_reset_label.setText(tr(lang, "settings_idle_reset"))
         self.break_label.setText(tr(lang, "settings_break"))
         self.tone_label.setText(tr(lang, "settings_tone"))
         self.soft_label.setText(tr(lang, "settings_soft"))
@@ -236,6 +248,7 @@ class SettingsDialog(QDialog):
             language=self.language_combo.currentText(),
             autostart_enabled=self.autostart_checkbox.isChecked(),
             idle_threshold_sec=self.idle_spin.value(),
+            idle_reset_after_sec=self.idle_reset_spin.value(),
             break_duration_min=self.break_spin.value(),
             reminder_tone=str(self.tone_combo.currentData() or "friendly"),
             soft_points_min=soft_points,
@@ -317,9 +330,12 @@ class MainWindow(QMainWindow):
         self.work_time_label.setMinimumHeight(32)
         self.until_break_label = QLabel()
         self.until_break_label.setObjectName("secondaryText")
+        self.notice_label = QLabel()
+        self.notice_label.setObjectName("secondaryText")
         timer_layout.addWidget(self.work_time_title_label)
         timer_layout.addWidget(self.work_time_label)
         timer_layout.addWidget(self.until_break_label)
+        timer_layout.addWidget(self.notice_label)
         self.timer_card.setLayout(timer_layout)
 
         self.toggle_learning_btn = QPushButton()
@@ -397,6 +413,7 @@ class MainWindow(QMainWindow):
         self.learning_title_label.setText(tr(lang, "learning_block_title"))
         self.work_time_title_label.setText(tr(lang, "status_work_time"))
         self.pause_btn.setText(tr(lang, "menu_pause"))
+        self.notice_label.setText("")
         self.toggle_learning_btn.setText(
             tr(lang, "btn_hide_quotes") if self._learning_block_visible else tr(lang, "btn_show_quotes")
         )
@@ -432,6 +449,9 @@ class MainWindow(QMainWindow):
         else:
             until_text = _format_duration(self._last_until_break_seconds)
         self.until_break_label.setText(f"{tr(lang, 'status_until_break')}: {until_text}")
+
+    def set_notice(self, key: str | None = None) -> None:
+        self.notice_label.setText("" if key is None else tr(self.settings.language, key))
 
     def show_status_tab(self) -> None:
         self._present_window()

@@ -76,6 +76,7 @@ class ControlWorkApplication:
             self.tracker.get_cycle_active_seconds(),
             self.tracker.get_seconds_to_next_break(),
         )
+        self.main_window.set_notice()
         self.main_window.show()
         self.main_window.show_status_tab()
         QTimer.singleShot(150, self.main_window.show_status_tab)
@@ -126,6 +127,7 @@ class ControlWorkApplication:
             self.tracker.get_cycle_active_seconds(),
             self.tracker.get_seconds_to_next_break(),
         )
+        self.main_window.set_notice("status_idle_reset" if outcome.idle_timer_reset else None)
         self.main_window.refresh_learning_block()
 
         for event in outcome.reminders:
@@ -169,6 +171,7 @@ class ControlWorkApplication:
             self.tracker.get_cycle_active_seconds(),
             self.tracker.get_seconds_to_next_break(),
         )
+        self.main_window.set_notice()
 
     def _start_break_now(self) -> None:
         self._on_break_start()
@@ -205,6 +208,7 @@ class ControlWorkApplication:
             self.tracker.get_cycle_active_seconds(),
             self.tracker.get_seconds_to_next_break(),
         )
+        self.main_window.set_notice()
         self.notification.notify(self._reminder_text("hard_title"), tr(self.settings.language, "break_shortened"))
 
     def _on_save_settings(self, settings: AppSettings) -> None:

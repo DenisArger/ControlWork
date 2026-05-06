@@ -22,6 +22,7 @@ class AppSettings:
     language: str = "ru"
     autostart_enabled: bool = True
     idle_threshold_sec: int = 120
+    idle_reset_after_sec: int = 300
     break_duration_min: int = 10
     reminder_tone: str = "friendly"
     soft_points_min: list[int] = field(default_factory=lambda: [15, 30, 45])
@@ -34,6 +35,7 @@ class AppSettings:
     def normalize(self) -> "AppSettings":
         self.language = "en" if self.language == "en" else "ru"
         self.idle_threshold_sec = max(30, int(self.idle_threshold_sec))
+        self.idle_reset_after_sec = max(0, int(self.idle_reset_after_sec))
         self.break_duration_min = max(1, int(self.break_duration_min))
         if self.reminder_tone not in REMINDER_TONES:
             self.reminder_tone = "friendly"
@@ -77,6 +79,7 @@ class TickOutcome:
     break_idle_streak_sec: int = 0
     break_idle_max_streak_sec: int = 0
     break_completed: bool = False
+    idle_timer_reset: bool = False
 
 
 def _normalize_points(values: list[int]) -> list[int]:

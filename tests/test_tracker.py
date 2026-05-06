@@ -38,6 +38,7 @@ def make_tracker(tmp_path: Path, idle_sequence: list[int], break_minutes: int = 
     settings = AppSettings(
         language="en",
         idle_threshold_sec=120,
+        idle_reset_after_sec=300,
         break_duration_min=break_minutes,
         soft_points_min=[15, 30, 45],
         hard_points_min=[50],
@@ -64,6 +65,7 @@ def make_tracker_at(
     settings = AppSettings(
         language="en",
         idle_threshold_sec=120,
+        idle_reset_after_sec=300,
         break_duration_min=break_minutes,
         soft_points_min=[15, 30, 45],
         hard_points_min=[50],
@@ -90,6 +92,30 @@ def test_active_vs_idle_accounting(tmp_path: Path) -> None:
     assert tracker.active_sec == 10
     assert tracker.idle_sec == 5
     assert tracker.state == TrackerState.IDLE
+    db.close()
+
+
+def test_cycle_timer_resets_after_prolonged_idle(tmp_path: Path) -> None:
+    tracker, clock, db = make_tracker(tmp_path, [0] * 3 + [400] * 5)
+    tracker.cycle_active_sec = 20 * 60
+
+    for _ in range(8):
+        tracker.tick()
+        clock.advance()
+
+    assert tracker.cycle_active_sec == 0
+    db.close()
+
+
+def test_short_idle_does_not_reset_cycle_timer(tmp_path: Path) -> None:
+    tracker, clock, db = make_tracker(tmp_path, [0] * 3 + [200] * 5)
+    tracker.cycle_active_sec = 20 * 60
+
+    for _ in range(8):
+        tracker.tick()
+        clock.advance()
+
+    assert tracker.cycle_active_sec == 20 * 60 + 3
     db.close()
 
 

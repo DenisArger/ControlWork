@@ -44,6 +44,7 @@ class TrackerService:
         self.break_elapsed_sec = 0
         self.break_idle_streak_sec = 0
         self.break_max_idle_streak_sec = 0
+        self._idle_timer_reset = False
 
         self.snooze_hour_bucket = 0
         self.snooze_count_in_bucket = 0
@@ -130,6 +131,8 @@ class TrackerService:
             self.start_session()
 
         outcome = TickOutcome(state=self.state)
+        outcome.idle_timer_reset = self._idle_timer_reset
+        self._idle_timer_reset = False
 
         if self.state == TrackerState.PAUSED:
             self._flush_session_totals()
@@ -153,6 +156,10 @@ class TrackerService:
         if idle_seconds >= self.settings.idle_threshold_sec:
             self.state = TrackerState.IDLE
             self.idle_sec += 1
+            if self.settings.idle_reset_after_sec > 0 and idle_seconds >= self.settings.idle_reset_after_sec:
+                self.cycle_active_sec = 0
+                self._idle_timer_reset = True
+                outcome.idle_timer_reset = True
         else:
             self.state = TrackerState.ACTIVE
             self.active_sec += 1
