@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import random
+from dataclasses import dataclass
 
 from .themed_quotes_data import BASE_THEMED_QUOTES
 from .quote_models import ThemedQuote

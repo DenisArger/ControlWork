@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from .quote_models import ThemedQuote
 
 BASE_THEMED_QUOTES: dict[str, dict[str, list[ThemedQuote]]] = {

@@ -281,13 +281,13 @@ class MainWindow(QMainWindow):
 
     def __init__(self, settings: AppSettings) -> None:
         super().__init__()
-        self._size_with_learning_block = (340, 470)
-        self._size_without_learning_block = (340, 280)
-        self._fixed_learning_scroll_height = 220
+        self._size_with_learning_block = (240, 260)
+        self._size_without_learning_block = (240, 140)
+        self._fixed_learning_scroll_height = 80
         self._current_state = TrackerState.ACTIVE
         self.settings = settings
         self._hide_to_tray_enabled = True
-        self._learning_block_visible = True
+        self._learning_block_visible = False
         self._last_learning_slot: int | None = None
         self._current_quote: ThemedQuote | None = None
         self._current_verb: IrregularVerb | None = None
@@ -305,36 +305,52 @@ class MainWindow(QMainWindow):
         body = QWidget()
         body.setObjectName("mainRoot")
         layout = QVBoxLayout()
-        layout.setContentsMargins(16, 16, 16, 16)
-        layout.setSpacing(10)
+        layout.setContentsMargins(4, 4, 4, 4)
+        layout.setSpacing(3)
 
         self.state_title_label = QLabel()
         self.state_badge_label = QLabel()
         state_row = QHBoxLayout()
         state_row.setContentsMargins(0, 0, 0, 0)
-        state_row.setSpacing(8)
+        state_row.setSpacing(1)
         state_row.addWidget(self.state_title_label)
         state_row.addStretch(1)
         state_row.addWidget(self.state_badge_label)
 
         self.timer_card = QFrame()
         self.timer_card.setObjectName("timerCard")
-        self.timer_card.setMinimumHeight(80)
+        self.timer_card.setMinimumHeight(48)
         timer_layout = QVBoxLayout()
-        timer_layout.setContentsMargins(12, 8, 12, 8)
-        timer_layout.setSpacing(0)
+        timer_layout.setContentsMargins(4, 2, 4, 2)
+        timer_layout.setSpacing(2)
         self.work_time_title_label = QLabel()
         self.work_time_title_label.setObjectName("secondaryText")
         self.work_time_label = QLabel()
         self.work_time_label.setObjectName("workTimeValue")
-        self.work_time_label.setMinimumHeight(32)
-        self.until_break_label = QLabel()
-        self.until_break_label.setObjectName("secondaryText")
+        self.work_time_label.setMinimumHeight(20)
+        work_time_row = QHBoxLayout()
+        work_time_row.setContentsMargins(0, 0, 0, 0)
+        work_time_row.setSpacing(4)
+        work_time_row.addWidget(self.work_time_title_label)
+        work_time_row.addWidget(self.work_time_label)
+        work_time_row.addStretch(1)
+
+        self.until_break_title_label = QLabel()
+        self.until_break_title_label.setObjectName("secondaryText")
+        self.until_break_time_label = QLabel()
+        self.until_break_time_label.setObjectName("workTimeValue")
+        self.until_break_time_label.setMinimumHeight(20)
+        until_break_row = QHBoxLayout()
+        until_break_row.setContentsMargins(0, 0, 0, 0)
+        until_break_row.setSpacing(4)
+        until_break_row.addWidget(self.until_break_title_label)
+        until_break_row.addWidget(self.until_break_time_label)
+        until_break_row.addStretch(1)
+
         self.notice_label = QLabel()
         self.notice_label.setObjectName("secondaryText")
-        timer_layout.addWidget(self.work_time_title_label)
-        timer_layout.addWidget(self.work_time_label)
-        timer_layout.addWidget(self.until_break_label)
+        timer_layout.addLayout(work_time_row)
+        timer_layout.addLayout(until_break_row)
         timer_layout.addWidget(self.notice_label)
         self.timer_card.setLayout(timer_layout)
 
@@ -350,8 +366,8 @@ class MainWindow(QMainWindow):
         self.state_badge_label.setObjectName("stateBadge")
         self.state_title_label.setObjectName("sectionTitle")
         self.learning_title_label.setObjectName("sectionTitle")
-        self.pause_btn.setFixedHeight(36)
-        self.toggle_learning_btn.setFixedHeight(36)
+        self.pause_btn.setFixedHeight(22)
+        self.toggle_learning_btn.setFixedHeight(22)
         self.pause_btn.clicked.connect(self.pause_toggle_requested.emit)
         self.toggle_learning_btn.clicked.connect(self._toggle_learning_block)
         self.quote_label.clicked.connect(self._on_quote_click)
@@ -374,7 +390,7 @@ class MainWindow(QMainWindow):
         self.learning_content.setLayout(learning_content_layout)
         self.learning_scroll.setWidget(self.learning_content)
         learning_layout = QVBoxLayout()
-        learning_layout.setContentsMargins(10, 8, 10, 8)
+        learning_layout.setContentsMargins(6, 4, 6, 4)
         learning_layout.setSpacing(0)
         learning_layout.addWidget(self.learning_scroll)
         self.learning_card.setLayout(learning_layout)
@@ -401,7 +417,7 @@ class MainWindow(QMainWindow):
         self._custom_json_error_shown = False
         self._recent_history = self._normalized_recent_history(settings.learning_recent_history)
         self._reload_custom_cards()
-        self.refresh_learning_block(force=True)  # ← добавить эту строку        self._reload_custom_cards()
+        self.refresh_learning_block(force=True)
 
     def set_hide_to_tray_enabled(self, enabled: bool) -> None:
         self._hide_to_tray_enabled = enabled
@@ -411,7 +427,8 @@ class MainWindow(QMainWindow):
         self.setWindowTitle(tr(lang, "app_title"))
         self.state_title_label.setText(f"{tr(lang, 'status_title')}:")
         self.learning_title_label.setText(tr(lang, "learning_block_title"))
-        self.work_time_title_label.setText(tr(lang, "status_work_time"))
+        self.work_time_title_label.setText(f"{tr(lang, 'status_work_time')}: ")
+        self.until_break_title_label.setText(f"{tr(lang, 'status_until_break')}: ")
         self.pause_btn.setText(tr(lang, "menu_pause"))
         self.notice_label.setText("")
         self.toggle_learning_btn.setText(
@@ -448,7 +465,7 @@ class MainWindow(QMainWindow):
             until_text = tr(lang, "status_no_break")
         else:
             until_text = _format_duration(self._last_until_break_seconds)
-        self.until_break_label.setText(f"{tr(lang, 'status_until_break')}: {until_text}")
+        self.until_break_time_label.setText(until_text)
 
     def set_notice(self, key: str | None = None) -> None:
         self.notice_label.setText("" if key is None else tr(self.settings.language, key))
@@ -713,31 +730,31 @@ class MainWindow(QMainWindow):
             QWidget {
                 color: #1F2937;
                 font-family: "Segoe UI";
-                font-size: 14px;
+                font-size: 11px;
             }
             QFrame#timerCard, QFrame#learningCard {
                 background-color: #FFFFFF;
                 border: 1px solid #D5DCE6;
-                border-radius: 10px;
+                border-radius: 5px;
             }
             QLabel#sectionTitle {
                 color: #1F2937;
-                font-weight: 600;
+                font-weight: 800;
             }
             QLabel#workTimeValue {
                 font-family: "Consolas";
-                font-size: 24px;
+                font-size: 16px;
                 font-weight: 700;
                 color: #111827;
             }
             QLabel#secondaryText {
                 color: #4B5563;
-                font-size: 13px;
+                font-size: 10px;
             }
             QLabel#stateBadge {
                 border-radius: 999px;
-                padding: 3px 10px;
-                font-size: 13px;
+                padding: 1px 5px;
+                font-size: 10px;
                 font-weight: 600;
                 background-color: #DBEAFE;
                 color: #1E40AF;
@@ -755,9 +772,10 @@ class MainWindow(QMainWindow):
                 background-color: transparent;
             }
             QPushButton {
-                min-height: 36px;
-                border-radius: 10px;
-                font-size: 14px;
+                min-height: 20px;
+                border-radius: 5px;
+                font-size: 11px;
+                padding: 2px 10px;
             }
             QPushButton#primaryButton {
                 background-color: #2563EB;
@@ -789,8 +807,8 @@ class MainWindow(QMainWindow):
             }
             QScrollBar:vertical {
                 background: transparent;
-                width: 8px;
-                margin: 2px;
+                width: 6px;
+                margin: 1px;
             }
             QScrollBar::handle:vertical {
                 background: #C7D2E0;
