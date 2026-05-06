@@ -475,7 +475,7 @@ class MainWindow(QMainWindow):
 
     def _render_quote(self) -> None:
         lang_key = "en" if self.settings.language == "en" else "ru"
-        pool = [quote for topic_quotes in THEMED_QUOTES[lang_key].values() for quote in topic_quotes]
+        pool = self._daily_quote_pool(lang_key)
         ordered_pool = self._daily_ordered_pool(
             pool,
             item_id_fn=lambda item: f"{item.topic}|{item.author}|{item.text}",
@@ -627,6 +627,19 @@ class MainWindow(QMainWindow):
             pool,
             key=lambda item: hashlib.sha256(f"{day_key}|{item_id_fn(item)}".encode("utf-8")).hexdigest(),
         )
+
+    def _daily_quote_pool(self, lang_key: str) -> list[ThemedQuote]:
+        topics = list(THEMED_QUOTES[lang_key].keys())
+        if not topics:
+            return []
+
+        day_key = f"{date.today().isoformat()}|{lang_key}|topics"
+        ordered_topics = sorted(
+            topics,
+            key=lambda topic: hashlib.sha256(f"{day_key}|{topic}".encode("utf-8")).hexdigest(),
+        )
+        chosen_topics = ordered_topics[: min(3, len(ordered_topics))]
+        return [quote for topic in chosen_topics for quote in THEMED_QUOTES[lang_key][topic]]
 
     def _on_quote_click(self) -> None:
         self._last_learning_slot = None

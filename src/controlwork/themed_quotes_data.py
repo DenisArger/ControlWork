@@ -15,6 +15,7 @@ BASE_THEMED_QUOTES: dict[str, dict[str, list[ThemedQuote]]] = {
             ThemedQuote("family", "Семья - это компас, который направляет нас. Она вдохновляет на большие высоты и поддерживает, когда мы оступаемся.", "Брэд Генри"),
             ThemedQuote("family", "Семья - это настоящее богатство.", "Ричард Бах"),
             ThemedQuote("family", "Семья - один из шедевров природы.", "Джордж Сантаяна"),
+            ThemedQuote("family", "Семья - это место, где можно любить и быть любимым.", "Неизвестный автор"),
         ],
         "discipline": [
             ThemedQuote("discipline", "Мы есть то, что постоянно делаем.", "Аристотель"),
@@ -29,6 +30,8 @@ BASE_THEMED_QUOTES: dict[str, dict[str, list[ThemedQuote]]] = {
             ThemedQuote("discipline", "Дисциплина - это мост между целями и достижениями.", "Джим Рон"),
             ThemedQuote("discipline", "Работайте над собой больше, чем над своей работой.", "Джим Рон"),
             ThemedQuote("discipline", "Успех - это устойчивый прогресс к своим личным целям.", "Джим Рон"),
+            ThemedQuote("discipline", "Успех - это несколько простых дисциплин, практикуемых каждый день.", "Джим Рон"),
+            ThemedQuote("discipline", "Небольшие дисциплины, повторяемые ежедневно, приводят к большим достижениям.", "Джон К. Максвелл"),
         ],
         "health": [
             ThemedQuote("health", "Пусть пища будет твоим лекарством.", "Гиппократ"),
@@ -43,6 +46,8 @@ BASE_THEMED_QUOTES: dict[str, dict[str, list[ThemedQuote]]] = {
             ThemedQuote("health", "Отдыхайте, когда устали. Освежитесь и обновите себя, свое тело, разум и дух. Потом возвращайтесь к работе.", "Ральф Марстон"),
             ThemedQuote("health", "Ваше тело слышит все, что говорит ваш разум.", "Наоми Джадд"),
             ThemedQuote("health", "Нужно слушать свое тело, потому что оно слушает вас.", "Фил Макгроу"),
+            ThemedQuote("health", "Первое богатство - это здоровье.", "Ральф Уолдо Эмерсон"),
+            ThemedQuote("health", "Хорошее здоровье и здравый смысл - два величайших благословения жизни.", "Публилий Сир"),
         ],
         "children": [
             ThemedQuote("children", "Лучший способ сделать детей хорошими - сделать их счастливыми.", "Оскар Уайльд"),
@@ -55,6 +60,8 @@ BASE_THEMED_QUOTES: dict[str, dict[str, list[ThemedQuote]]] = {
             ThemedQuote("children", "Никто не может сделать для маленьких детей того, что делают бабушки и дедушки.", "Алекс Хейли"),
             ThemedQuote("children", "Дети не пустые сосуды, которые мы наполняем; это строители человека.", "Мария Монтессори"),
             ThemedQuote("children", "Молодым нужны примеры, а не критики.", "Джон Вуден"),
+            ThemedQuote("children", "Дети - это светлые лучи бесконечного и вечного.", "Рабиндранат Тагор"),
+            ThemedQuote("children", "Душа исцеляется рядом с детьми.", "Федор Достоевский"),
         ],
         "leadership": [
             ThemedQuote("leadership", "Лидерство - это способность превращать видение в реальность.", "Уоррен Беннис"),
@@ -69,6 +76,8 @@ BASE_THEMED_QUOTES: dict[str, dict[str, list[ThemedQuote]]] = {
             ThemedQuote("leadership", "Лидерство - это способность превращать видение в реальность.", "Уоррен Беннис"),
             ThemedQuote("leadership", "Менеджер спрашивает как и когда, лидер спрашивает что и почему.", "Уоррен Беннис"),
             ThemedQuote("leadership", "Стать лидером - значит стать самим собой.", "Уоррен Беннис"),
+            ThemedQuote("leadership", "Лидерство - это не власть, а забота о тех, кто в твоей ответственности.", "Саймон Синек"),
+            ThemedQuote("leadership", "Функция лидера - производить больше лидеров, а не больше последователей.", "Ральф Надер"),
         ],
         "bible": [
             ThemedQuote(
@@ -131,6 +140,8 @@ BASE_THEMED_QUOTES: dict[str, dict[str, list[ThemedQuote]]] = {
             ThemedQuote("bible", "Надейся на Господа всем сердцем твоим и не полагайся на разум твой.", "Библия, Притчи 3:5"),
             ThemedQuote("bible", "Мир оставляю вам, мир Мой даю вам.", "Библия, Иоанна 14:27"),
             ThemedQuote("bible", "Любящим Бога все содействует ко благу.", "Библия, Римлянам 8:28"),
+            ThemedQuote("bible", "Господь - Пастырь мой; я ни в чем не буду нуждаться.", "Библия, Псалом 22:1"),
+            ThemedQuote("bible", "Будь тверд и мужествен; не бойся и не ужасайся.", "Библия, Иисуса Навина 1:9"),
         ],
     },
     "en": {
@@ -145,6 +156,8 @@ BASE_THEMED_QUOTES: dict[str, dict[str, list[ThemedQuote]]] = {
             ThemedQuote("family", "You don't choose your family. They are God's gift to you, as you are to them.", "Desmond Tutu"),
             ThemedQuote("family", "Families are the compass that guide us.", "Brad Henry"),
             ThemedQuote("family", "The only rock I know that stays steady, the only institution I know that works, is the family.", "Lee Iacocca"),
+            ThemedQuote("family", "Family means no one gets left behind or forgotten.", "David Ogden Stiers"),
+            ThemedQuote("family", "A happy family is but an earlier heaven.", "George Bernard Shaw"),
         ],
         "discipline": [
             ThemedQuote("discipline", "We are what we repeatedly do.", "Aristotle"),
@@ -157,6 +170,8 @@ BASE_THEMED_QUOTES: dict[str, dict[str, list[ThemedQuote]]] = {
             ThemedQuote("discipline", "No man is free who is not master of himself.", "Epictetus"),
             ThemedQuote("discipline", "Take care of your body. It's the only place you have to live.", "Jim Rohn"),
             ThemedQuote("discipline", "To do the same thing over and over again is not only boredom: it is to be controlled by rather than to control what you do.", "Heraclitus"),
+            ThemedQuote("discipline", "Success is nothing more than a few simple disciplines, practiced every day.", "Jim Rohn"),
+            ThemedQuote("discipline", "The pain of discipline is far less than the pain of regret.", "Sarah Bombell"),
         ],
         "health": [
             ThemedQuote("health", "Let food be thy medicine.", "Hippocrates"),
@@ -169,6 +184,8 @@ BASE_THEMED_QUOTES: dict[str, dict[str, list[ThemedQuote]]] = {
             ThemedQuote("health", "Your body hears everything your mind says.", "Naomi Judd"),
             ThemedQuote("health", "You need to listen to your body because your body is listening to you.", "Phil McGraw"),
             ThemedQuote("health", "Rest when you're weary. Refresh and renew yourself, your body, your mind, your spirit. Then get back to work.", "Ralph Marston"),
+            ThemedQuote("health", "The first wealth is health.", "Ralph Waldo Emerson"),
+            ThemedQuote("health", "Good health and good sense are two of life's greatest blessings.", "Publilius Syrus"),
         ],
         "children": [
             ThemedQuote("children", "The best way to make children good is to make them happy.", "Oscar Wilde"),
@@ -179,6 +196,8 @@ BASE_THEMED_QUOTES: dict[str, dict[str, list[ThemedQuote]]] = {
             ThemedQuote("children", "There can be no keener revelation of a society's soul than the way it treats its children.", "Nelson Mandela"),
             ThemedQuote("children", "Young people need models, not critics.", "John Wooden"),
             ThemedQuote("children", "Nobody can do for little children what grandparents do.", "Alex Haley"),
+            ThemedQuote("children", "Children are not things to be molded, but are people to be unfolded.", "Jess Lair"),
+            ThemedQuote("children", "The soul is healed by being with children.", "Fyodor Dostoevsky"),
         ],
         "leadership": [
             ThemedQuote("leadership", "Leadership is the capacity to translate vision into reality.", "Warren Bennis"),
@@ -191,6 +210,8 @@ BASE_THEMED_QUOTES: dict[str, dict[str, list[ThemedQuote]]] = {
             ThemedQuote("leadership", "Leaders are people who do the right thing; managers are people who do things right.", "Warren Bennis"),
             ThemedQuote("leadership", "The manager accepts the status quo; the leader challenges it.", "Warren Bennis"),
             ThemedQuote("leadership", "Leadership is the capacity to translate vision into reality.", "Warren Bennis"),
+            ThemedQuote("leadership", "Leadership is not about being in charge. It is about taking care of those in your charge.", "Simon Sinek"),
+            ThemedQuote("leadership", "The function of leadership is to produce more leaders, not more followers.", "Ralph Nader"),
         ],
         "bible": [
             ThemedQuote("bible", "Above all else, guard your heart.", "Bible, Proverbs 4:23"),
@@ -203,6 +224,8 @@ BASE_THEMED_QUOTES: dict[str, dict[str, list[ThemedQuote]]] = {
             ThemedQuote("bible", "Trust in the Lord with all your heart.", "Bible, Proverbs 3:5"),
             ThemedQuote("bible", "Peace I leave with you; my peace I give you.", "Bible, John 14:27"),
             ThemedQuote("bible", "In all things God works for the good of those who love him.", "Bible, Romans 8:28"),
+            ThemedQuote("bible", "The Lord is my shepherd; I shall not want.", "Bible, Psalm 23:1"),
+            ThemedQuote("bible", "Be strong and courageous; do not be afraid.", "Bible, Joshua 1:9"),
         ],
     },
 }
