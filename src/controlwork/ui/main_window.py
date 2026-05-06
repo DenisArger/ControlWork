@@ -633,12 +633,18 @@ class MainWindow(QMainWindow):
         if not topics:
             return []
 
-        day_key = f"{date.today().isoformat()}|{lang_key}|topics"
+        today = date.today()
+        day_key = f"{today.isoformat()}|{lang_key}|topics"
         ordered_topics = sorted(
             topics,
             key=lambda topic: hashlib.sha256(f"{day_key}|{topic}".encode("utf-8")).hexdigest(),
         )
-        chosen_topics = ordered_topics[: min(3, len(ordered_topics))]
+        topic_count = min(3, len(ordered_topics))
+        if topic_count == len(ordered_topics):
+            chosen_topics = ordered_topics
+        else:
+            start_index = today.toordinal() % len(ordered_topics)
+            chosen_topics = [ordered_topics[(start_index + offset) % len(ordered_topics)] for offset in range(topic_count)]
         return [quote for topic in chosen_topics for quote in THEMED_QUOTES[lang_key][topic]]
 
     def _on_quote_click(self) -> None:
