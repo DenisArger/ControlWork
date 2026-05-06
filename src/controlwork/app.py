@@ -88,16 +88,19 @@ class ControlWorkApplication:
 
         self.action_status = QAction(tr(lang, "menu_status"), self.main_window)
         self.action_pause = QAction(tr(lang, "menu_pause"), self.main_window)
+        self.action_break_now = QAction(tr(lang, "menu_break_now"), self.main_window)
         self.action_settings = QAction(tr(lang, "menu_settings"), self.main_window)
         self.action_exit = QAction(tr(lang, "menu_exit"), self.main_window)
 
         self.action_status.triggered.connect(self.main_window.show_status_tab)
         self.action_pause.triggered.connect(self._toggle_pause)
+        self.action_break_now.triggered.connect(self._start_break_now)
         self.action_settings.triggered.connect(self._open_settings_dialog)
         self.action_exit.triggered.connect(self._shutdown)
 
         menu.addAction(self.action_status)
         menu.addAction(self.action_pause)
+        menu.addAction(self.action_break_now)
         menu.addAction(self.action_settings)
         menu.addSeparator()
         menu.addAction(self.action_exit)
@@ -112,6 +115,7 @@ class ControlWorkApplication:
         self.action_pause.setText(
             tr(lang, "menu_resume") if self.tracker.state == TrackerState.PAUSED else tr(lang, "menu_pause")
         )
+        self.action_break_now.setText(tr(lang, "menu_break_now"))
         self.action_settings.setText(tr(lang, "menu_settings"))
         self.action_exit.setText(tr(lang, "menu_exit"))
 
@@ -165,6 +169,12 @@ class ControlWorkApplication:
             self.tracker.get_cycle_active_seconds(),
             self.tracker.get_seconds_to_next_break(),
         )
+
+    def _start_break_now(self) -> None:
+        self._on_break_start()
+        self.main_window.update_state(self.tracker.state)
+        self.break_overlay.showFullScreen()
+        self._retranslate_tray()
 
     def _on_hard_snooze(self) -> None:
         if self.tracker.request_snooze("hard"):

@@ -12,7 +12,7 @@ class NotificationService:
     tray_icon: QSystemTrayIcon | None = None
 
     def notify(self, title: str, message: str, critical: bool = False) -> None:
-        self._try_native_backend(title, message, critical)
+        #self._try_native_backend(title, message, critical)
         if self.tray_icon is not None:
             self.tray_icon.showMessage(
                 title,

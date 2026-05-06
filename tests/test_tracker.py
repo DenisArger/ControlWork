@@ -122,6 +122,18 @@ def test_break_can_be_finished_early(tmp_path: Path) -> None:
     db.close()
 
 
+def test_enter_break_starts_break_immediately(tmp_path: Path) -> None:
+    tracker, clock, db = make_tracker(tmp_path, [0] * 20, break_minutes=2)
+
+    tracker.cycle_active_sec = 25 * 60
+    tracker.enter_break()
+
+    assert tracker.state == TrackerState.BREAK
+    assert tracker.break_event_id is not None
+    assert tracker.get_seconds_to_next_break() == 120
+    db.close()
+
+
 def test_snooze_limit_per_work_hour(tmp_path: Path) -> None:
     tracker, clock, db = make_tracker(tmp_path, [0] * 100)
 

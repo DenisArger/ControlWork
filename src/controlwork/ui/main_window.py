@@ -383,6 +383,7 @@ class MainWindow(QMainWindow):
         self._custom_json_error_shown = False
         self._recent_history = self._normalized_recent_history(settings.learning_recent_history)
         self._reload_custom_cards()
+        self.refresh_learning_block(force=True)  # ← добавить эту строку        self._reload_custom_cards()
 
     def set_hide_to_tray_enabled(self, enabled: bool) -> None:
         self._hide_to_tray_enabled = enabled
