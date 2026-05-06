@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import hashlib
 import random
 import time
+from datetime import date
 from html import escape
 from dataclasses import replace
 from typing import Callable, TypeVar
@@ -474,11 +476,14 @@ class MainWindow(QMainWindow):
     def _render_quote(self) -> None:
         lang_key = "en" if self.settings.language == "en" else "ru"
         pool = [quote for topic_quotes in THEMED_QUOTES[lang_key].values() for quote in topic_quotes]
-        quote = self._select_with_recent_ids(
+        ordered_pool = self._daily_ordered_pool(
             pool,
             item_id_fn=lambda item: f"{item.topic}|{item.author}|{item.text}",
-            history_key="quotes",
+            day_key=f"{date.today().isoformat()}|{lang_key}",
         )
+        seconds_since_midnight = int(time.time() % 86400)
+        slot_index = (seconds_since_midnight // 30) % len(ordered_pool)
+        quote = ordered_pool[slot_index]
         self._current_quote = quote
         topic = tr(self.settings.language, f"quote_topic_{quote.topic}")
         author = format_thematic_quote_author(quote)
@@ -608,6 +613,20 @@ class MainWindow(QMainWindow):
         self._recent_history[history_key] = updated[-recent_window:]
         self._sync_recent_history_to_settings()
         return selected
+
+    def _daily_ordered_pool(
+        self,
+        pool: list[_T],
+        item_id_fn: Callable[[_T], str],
+        day_key: str,
+    ) -> list[_T]:
+        if not pool:
+            raise ValueError("pool must not be empty")
+
+        return sorted(
+            pool,
+            key=lambda item: hashlib.sha256(f"{day_key}|{item_id_fn(item)}".encode("utf-8")).hexdigest(),
+        )
 
     def _on_quote_click(self) -> None:
         self._last_learning_slot = None
