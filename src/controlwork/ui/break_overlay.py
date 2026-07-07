@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import Qt, QRect, Signal
+from PySide6.QtGui import QGuiApplication
 from PySide6.QtWidgets import (
     QSizePolicy,
     QHBoxLayout,
@@ -24,6 +25,7 @@ class BreakOverlay(QWidget):
         self.language = language
         self.reminder_tone = reminder_tone
         self._is_break_mode = False
+        self._covers = []
 
         self.setWindowFlags(
             Qt.WindowStaysOnTopHint
@@ -121,7 +123,40 @@ class BreakOverlay(QWidget):
         self.start_btn.setEnabled(True)
         self.snooze_btn.setEnabled(True)
         self.skip_btn.setEnabled(can_skip)
+        self.show_on_all_screens()
+
+    def show_on_all_screens(self) -> None:
+        screens = QGuiApplication.screens()
+        primary = QGuiApplication.primaryScreen()
+        if primary is not None:
+            self.setGeometry(primary.geometry())
         self.showFullScreen()
+        self._show_covers(screens, primary)
+
+    def _show_covers(self, screens, primary) -> None:
+        self._close_covers()
+        for s in screens:
+            if s is primary:
+                continue
+            cover = QWidget(None, Qt.WindowStaysOnTopHint | Qt.FramelessWindowHint | Qt.Tool)
+            cover.setStyleSheet("background-color: black;")
+            cover.setGeometry(s.geometry())
+            cover.show()
+            cover.raise_()
+            self._covers.append(cover)
+
+    def _close_covers(self) -> None:
+        for c in self._covers:
+            try:
+                c.close()
+                c.deleteLater()
+            except Exception:
+                pass
+        self._covers = []
+
+    def hide(self) -> None:
+        self._close_covers()
+        super().hide()
 
     def set_break_mode(self, remaining_sec: int, idle_streak_sec: int) -> None:
         self._is_break_mode = True

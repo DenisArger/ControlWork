@@ -176,7 +176,7 @@ class ControlWorkApplication:
     def _start_break_now(self) -> None:
         self._on_break_start()
         self.main_window.update_state(self.tracker.state)
-        self.break_overlay.showFullScreen()
+        self.break_overlay.show_on_all_screens()
         self._retranslate_tray()
 
     def _on_hard_snooze(self) -> None:
