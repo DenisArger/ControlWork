@@ -8,6 +8,10 @@ from .database import Database
 from .idle import IdleProvider
 from .reminder import ReminderController
 
+# Minimal idle (s) required to count as "resting" during a break,
+# to avoid mouse jitter but start counting almost immediately.
+BREAK_IDLE_THRESHOLD_SEC = 3
+
 
 @dataclass
 class SystemClock:
@@ -198,7 +202,7 @@ class TrackerService:
         self.break_elapsed_sec += 1
         idle_seconds = self.idle_provider.get_idle_seconds()
 
-        if idle_seconds >= self.settings.idle_threshold_sec:
+        if idle_seconds >= BREAK_IDLE_THRESHOLD_SEC:
             self.break_idle_streak_sec += 1
         else:
             self.break_idle_streak_sec = 0
